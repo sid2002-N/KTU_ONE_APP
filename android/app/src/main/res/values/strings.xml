@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">KTU One</string>
+    <string name="title_activity_main">KTU One</string>
+    <string name="package_name">com.ktuone.app</string>
+    <string name="custom_url_scheme">com.ktuone.app</string>
+</resources>

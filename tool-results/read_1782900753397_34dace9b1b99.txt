@@ -1,0 +1,864 @@
+     1→"use client";
+     2→
+     3→import { useState, useEffect } from "react";
+     4→import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+     5→import { Trophy, Award, CalendarCheck, ClipboardList, Target, Plus, X, Save, Share2, History } from "lucide-react";
+     6→import { PageHeader } from "@/components/layout/page-header";
+     7→import { GlassCard } from "@/components/ui-custom/glass-card";
+     8→import { GradientCard } from "@/components/ui-custom/gradient-card";
+     9→import { AnimatedCounter } from "@/components/ui-custom/animated-counter";
+    10→import { CircularProgress } from "@/components/ui-custom/circular-progress";
+    11→import { EmptyState } from "@/components/ui-custom/empty-state";
+    12→import { SketchNotebook, SketchPencil, SketchBooks, SketchCoffeeCup } from "@/components/ui-custom/sketch-elements";
+    13→import { CALCULATORS, GRADE_OPTIONS, GRADE_LABELS, type CalculatorKey } from "@/lib/constants";
+    14→import { GRADE_POINTS, type Grade, type CalculatorCourse, type CalculatorType } from "@/lib/types";
+    15→import {
+    16→  computeSGPA,
+    17→  computeCGPA,
+    18→  computeAttendance,
+    19→  computeInternalMarks,
+    20→  computePassMarks,
+    21→  formatDate,
+    22→} from "@/lib/utils/calc";
+    23→import { useCalcHistory } from "@/features/calculators/use-calc-history";
+    24→import { useStudentData, semesterResultToCourses, cgpaToSemesters } from "@/features/calculators/use-student-data";
+    25→import { getNotificationProvider } from "@/lib/providers/notification";
+    26→import { cn } from "@/lib/utils";
+    27→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+    28→import { Input } from "@/components/ui/input";
+    29→import { Label } from "@/components/ui/label";
+    30→import { Button } from "@/components/ui/button";
+    31→
+    32→const calcIcons: Record<CalculatorKey, React.ComponentType<{ className?: string }>> = {
+    33→  sgpa: Trophy,
+    34→  cgpa: Award,
+    35→  attendance: CalendarCheck,
+    36→  internal: ClipboardList,
+    37→  pass: Target,
+    38→};
+    39→
+    40→export function Calculators() {
+    41→  const [active, setActive] = useState<CalculatorKey>("sgpa");
+    42→  const prefersReduced = useReducedMotion();
+    43→  const calc = CALCULATORS.find((c) => c.key === active)!;
+    44→  const Icon = calcIcons[calc.key];
+    45→
+    46→  return (
+    47→    <div>
+    48→      <PageHeader
+    49→        title="Calculators"
+    50→        description="Premium, fast and offline-ready calculators for every KTU scenario."
+    51→        icon={<Icon className="size-5" />}
+    52→      />
+    53→
+    54→      {/* Calculator selector pills */}
+    55→      <div className="flex flex-wrap gap-2 mb-6">
+    56→        {CALCULATORS.map((c) => {
+    57→          const CIcon = calcIcons[c.key];
+    58→          const isActive = active === c.key;
+    59→          return (
+    60→            <button
+    61→              key={c.key}
+    62→              onClick={() => setActive(c.key)}
+    63→              className={cn(
+    64→                "relative px-3.5 py-2 rounded-full text-sm font-medium transition flex items-center gap-2",
+    65→                isActive
+    66→                  ? "text-primary-foreground"
+    67→                  : "glass text-foreground hover:bg-secondary/60",
+    68→              )}
+    69→            >
+    70→              {isActive && (
+    71→                <motion.span
+    72→                  layoutId="calc-pill"
+    73→                  className="absolute inset-0 rounded-full bg-primary -z-10"
+    74→                  transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 30 }}
+    75→                />
+    76→              )}
+    77→              <CIcon className="size-4" />
+    78→              {c.title.replace(" Calculator", "")}
+    79→            </button>
+    80→          );
+    81→        })}
+    82→      </div>
+    83→
+    84→      <AnimatePresence mode="wait">
+    85→        <motion.div
+    86→          key={active}
+    87→          initial={prefersReduced ? false : { opacity: 0, y: 12 }}
+    88→          animate={{ opacity: 1, y: 0 }}
+    89→          exit={prefersReduced ? { opacity: 0 } : { opacity: 0, y: -12 }}
+    90→          transition={{ duration: 0.3 }}
+    91→        >
+    92→          {active === "sgpa" && <SgpaCalculator />}
+    93→          {active === "cgpa" && <CgpaCalculator />}
+    94→          {active === "attendance" && <AttendanceCalculator />}
+    95→          {active === "internal" && <InternalMarksCalculator />}
+    96→          {active === "pass" && <PassCalculator />}
+    97→        </motion.div>
+    98→      </AnimatePresence>
+    99→    </div>
+   100→  );
+   101→}
+   102→
+   103→/* ====================================================================== */
+   104→/* SHARED: Result Display                                                  */
+   105→/* ====================================================================== */
+   106→
+   107→function ResultDisplay({
+   108→  label,
+   109→  value,
+   110→  max,
+   111→  suffix = "",
+   112→  decimals = 2,
+   113→  hint,
+   114→}: {
+   115→  label: string;
+   116→  value: number;
+   117→  max?: number;
+   118→  suffix?: string;
+   119→  decimals?: number;
+   120→  hint?: string;
+   121→}) {
+   122→  const pct = max ? (value / max) * 100 : undefined;
+   123→  const [celebrate, setCelebrate] = useState(false);
+   124→  const prefersReduced = useReducedMotion();
+   125→
+   126→  return (
+   127→    <GradientCard gradient="plum" className="p-6 sm:p-8 text-center">
+   128→      <p className="text-xs uppercase tracking-widest opacity-80 font-semibold">
+   129→        {label}
+   130→      </p>
+   131→      <div className="mt-3 flex items-baseline justify-center gap-2">
+   132→        <span className="text-5xl sm:text-7xl font-bold tabular-nums tracking-tight">
+   133→          <AnimatedCounter key={value} value={value} decimals={decimals} />
+   134→        </span>
+   135→        {suffix && <span className="text-2xl font-medium opacity-80">{suffix}</span>}
+   136→      </div>
+   137→      {pct !== undefined && (
+   138→        <p className="text-sm opacity-80 mt-2">
+   139→          {pct.toFixed(1)}% {max === 10 ? "efficiency" : "of max"}
+   140→        </p>
+   141→      )}
+   142→      {hint && <p className="text-sm opacity-90 mt-2">{hint}</p>}
+   143→      <AnimatePresence>
+   144→        {celebrate && !prefersReduced && (
+   145→          <motion.div
+   146→            className="absolute inset-0 pointer-events-none"
+   147→            initial={{ opacity: 1 }}
+   148→            animate={{ opacity: 0 }}
+   149→            transition={{ duration: 1.2, delay: 0.4 }}
+   150→            onAnimationComplete={() => setCelebrate(false)}
+   151→          >
+   152→            {Array.from({ length: 12 }).map((_, i) => (
+   153→              <motion.span
+   154→                key={i}
+   155→                className="absolute size-2 rounded-full"
+   156→                style={{
+   157→                  background: ["#fff", "#F59E0B", "#E11D48"][i % 3],
+   158→                  left: "50%",
+   159→                  top: "50%",
+   160→                }}
+   161→                initial={{ x: 0, y: 0, scale: 0 }}
+   162→                animate={{
+   163→                  x: Math.cos((i / 12) * 2 * Math.PI) * 120,
+   164→                  y: Math.sin((i / 12) * 2 * Math.PI) * 120,
+   165→                  scale: [0, 1, 0],
+   166→                }}
+   167→                transition={{ duration: 0.9 }}
+   168→              />
+   169→            ))}
+   170→          </motion.div>
+   171→        )}
+   172→      </AnimatePresence>
+   173→      {/* Expose setter via ref-like pattern */}
+   174→      <CelebrationTrigger onCompute={setCelebrate} />
+   175→    </GradientCard>
+   176→  );
+   177→}
+   178→
+   179→function CelebrationTrigger({ onCompute }: { onCompute: (v: boolean) => void }) {
+   180→  // no-op; we trigger through the parent button via custom event
+   181→  useEffect(() => {
+   182→    const handler = () => onCompute(true);
+   183→    window.addEventListener("ktu:celebrate", handler);
+   184→    return () => window.removeEventListener("ktu:celebrate", handler);
+   185→  }, [onCompute]);
+   186→  return null;
+   187→}
+   188→
+   189→function fireCelebration() {
+   190→  window.dispatchEvent(new Event("ktu:celebrate"));
+   191→}
+   192→
+   193→/* ====================================================================== */
+   194→/* SGPA CALCULATOR                                                         */
+   195→/* ====================================================================== */
+   196→
+   197→function SgpaCalculator() {
+   198→  const { results, isAuthenticated } = useStudentData();
+   199→
+   200→  // Start with default courses; pre-fill from real data when available
+   201→  const [courses, setCourses] = useState<CalculatorCourse[]>([
+   202→    { id: "c1", subjectName: "Discrete Structures", credits: 4, grade: "A" },
+   203→    { id: "c2", subjectName: "Data Structures", credits: 3, grade: "A+" },
+   204→    { id: "c3", subjectName: "DBMS", credits: 3, grade: "B+" },
+   205→  ]);
+   206→  const [result, setResult] = useState<ReturnType<typeof computeSGPA> | null>(null);
+   207→  const [realLoaded, setRealLoaded] = useState(false);
+   208→  const { add: addHistory } = useCalcHistory();
+   209→
+   210→  // Pre-fill with real student data when available
+   211→  useEffect(() => {
+   212→    if (isAuthenticated && results && results.length > 0 && !realLoaded) {
+   213→      Promise.resolve().then(() => {
+   214→        // Use the latest semester's results
+   215→        const latestSem = results[results.length - 1]!;
+   216→        setCourses(semesterResultToCourses(latestSem));
+   217→        setRealLoaded(true);
+   218→      });
+   219→    }
+   220→  }, [isAuthenticated, results, realLoaded]);
+   221→
+   222→  const update = (id: string, patch: Partial<CalculatorCourse>) => {
+   223→    setCourses((arr) => arr.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+   224→  };
+   225→
+   226→  const addCourse = () => {
+   227→    setCourses((arr) => [
+   228→      ...arr,
+   229→      { id: `c_${Date.now()}`, subjectName: `Subject ${arr.length + 1}`, credits: 3, grade: "A" },
+   230→    ]);
+   231→  };
+   232→
+   233→  const removeCourse = (id: string) => {
+   234→    setCourses((arr) => arr.filter((c) => c.id !== id));
+   235→  };
+   236→
+   237→  const compute = () => {
+   238→    const r = computeSGPA(courses);
+   239→    setResult(r);
+   240→    fireCelebration();
+   241→    addHistory("SGPA", { courses }, r, `Semester — ${courses.length} subjects`);
+   242→    getNotificationProvider().show({
+   243→      kind: "success",
+   244→      title: `SGPA: ${r.value.toFixed(2)}`,
+   245→      message: `Across ${courses.length} subjects · ${r.meta?.totalCredits} credits`,
+   246→    });
+   247→  };
+   248→
+   249→  return (
+   250→    <div className="grid lg:grid-cols-3 gap-4">
+   251→      <div className="lg:col-span-2 space-y-3">
+   252→        <GlassCard className="p-5">
+   253→          <div className="flex items-center justify-between mb-3">
+   254→            <h3 className="font-semibold">Courses</h3>
+   255→            <button
+   256→              onClick={addCourse}
+   257→              className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition flex items-center gap-1.5"
+   258→            >
+   259→              <Plus className="size-3.5" /> Add subject
+   260→            </button>
+   261→          </div>
+   262→          <div className="space-y-2">
+   263→            {courses.map((c, i) => (
+   264→              <div
+   265→                key={c.id}
+   266→                className="grid grid-cols-12 gap-2 items-end p-3 rounded-xl bg-secondary/40"
+   267→              >
+   268→                <div className="col-span-12 sm:col-span-5">
+   269→                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+   270→                    Subject {i + 1}
+   271→                  </Label>
+   272→                  <Input
+   273→                    value={c.subjectName}
+   274→                    onChange={(e) => update(c.id, { subjectName: e.target.value })}
+   275→                    className="mt-1 h-9 bg-background"
+   276→                  />
+   277→                </div>
+   278→                <div className="col-span-5 sm:col-span-3">
+   279→                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+   280→                    Credits
+   281→                  </Label>
+   282→                  <Input
+   283→                    type="number"
+   284→                    min={1}
+   285→                    max={6}
+   286→                    value={c.credits}
+   287→                    onChange={(e) => update(c.id, { credits: Math.max(1, Number(e.target.value)) })}
+   288→                    className="mt-1 h-9 bg-background"
+   289→                  />
+   290→                </div>
+   291→                <div className="col-span-5 sm:col-span-3">
+   292→                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+   293→                    Grade
+   294→                  </Label>
+   295→                  <Select
+   296→                    value={c.grade}
+   297→                    onValueChange={(v) => update(c.id, { grade: v as Grade })}
+   298→                  >
+   299→                    <SelectTrigger className="mt-1 h-9 bg-background">
+   300→                      <SelectValue />
+   301→                    </SelectTrigger>
+   302→                    <SelectContent>
+   303→                      {GRADE_OPTIONS.map((g) => (
+   304→                        <SelectItem key={g} value={g}>
+   305→                          {GRADE_LABELS[g]}
+   306→                        </SelectItem>
+   307→                      ))}
+   308→                    </SelectContent>
+   309→                  </Select>
+   310→                </div>
+   311→                <div className="col-span-2 sm:col-span-1 flex justify-end">
+   312→                  <button
+   313→                    onClick={() => removeCourse(c.id)}
+   314→                    className="size-9 rounded-lg hover:bg-destructive/10 hover:text-destructive flex items-center justify-center transition"
+   315→                    aria-label="Remove course"
+   316→                  >
+   317→                    <X className="size-4" />
+   318→                  </button>
+   319→                </div>
+   320→              </div>
+   321→            ))}
+   322→            {courses.length === 0 && (
+   323→              <EmptyState
+   324→                title="No subjects yet"
+   325→                description="Add a subject to compute SGPA."
+   326→                compact
+   327→                illustration={<SketchNotebook size={64} color="plum" />}
+   328→                primaryAction={{ label: "Add subject", onClick: addCourse }}
+   329→              />
+   330→            )}
+   331→          </div>
+   332→        </GlassCard>
+   333→
+   334→        <div className="flex gap-2">
+   335→          <Button onClick={compute} disabled={courses.length === 0} className="flex-1 h-11 rounded-full shadow-soft">
+   336→            <Trophy className="size-4 mr-2" />
+   337→            Calculate SGPA
+   338→          </Button>
+   339→          <Button variant="secondary" className="h-11 rounded-full" disabled={!result}>
+   340→            <Save className="size-4 mr-2" /> Save
+   341→          </Button>
+   342→          <Button variant="secondary" className="h-11 rounded-full" disabled={!result}>
+   343→            <Share2 className="size-4" />
+   344→          </Button>
+   345→        </div>
+   346→      </div>
+   347→
+   348→      <div className="space-y-4">
+   349→        {result ? (
+   350→          <ResultDisplay
+   351→            label="Your SGPA"
+   352→            value={result.value}
+   353→            max={10}
+   354→            hint={`${result.meta?.totalCredits} credits across ${result.meta?.courses} subjects`}
+   355→          />
+   356→        ) : (
+   357→          <GlassCard className="p-8 flex flex-col items-center justify-center text-center min-h-[200px]">
+   358→            <SketchNotebook size={80} color="plum" />
+   359→            <p className="text-sm text-muted-foreground mt-3 italic">
+   360→              Add subjects and tap Calculate.
+   361→            </p>
+   362→          </GlassCard>
+   363→        )}
+   364→        <HistoryPanel type="SGPA" />
+   365→      </div>
+   366→    </div>
+   367→  );
+   368→}
+   369→
+   370→/* ====================================================================== */
+   371→/* CGPA CALCULATOR                                                         */
+   372→/* ====================================================================== */
+   373→
+   374→function CgpaCalculator() {
+   375→  const { cgpa, isAuthenticated } = useStudentData();
+   376→
+   377→  const [sems, setSems] = useState([
+   378→    { sgpa: 8.5, credits: 24 },
+   379→    { sgpa: 8.7, credits: 24 },
+   380→    { sgpa: 8.4, credits: 26 },
+   381→  ]);
+   382→  const [result, setResult] = useState<ReturnType<typeof computeCGPA> | null>(null);
+   383→  const [realLoaded, setRealLoaded] = useState(false);
+   384→  const { add: addHistory } = useCalcHistory();
+   385→
+   386→  // Pre-fill with real CGPA data when available
+   387→  useEffect(() => {
+   388→    if (isAuthenticated && cgpa && cgpa.semesters.length > 0 && !realLoaded) {
+   389→      Promise.resolve().then(() => {
+   390→        setSems(cgpaToSemesters(cgpa));
+   391→        setRealLoaded(true);
+   392→      });
+   393→    }
+   394→  }, [isAuthenticated, cgpa, realLoaded]);
+   395→
+   396→  const update = (i: number, patch: Partial<(typeof sems)[number]>) => {
+   397→    setSems((arr) => arr.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+   398→  };
+   399→
+   400→  const addSem = () => setSems((arr) => [...arr, { sgpa: 8, credits: 24 }]);
+   401→  const removeSem = (i: number) => setSems((arr) => arr.filter((_, idx) => idx !== i));
+   402→
+   403→  const compute = () => {
+   404→    const r = computeCGPA(sems);
+   405→    setResult(r);
+   406→    fireCelebration();
+   407→    addHistory("CGPA", { semesters: sems }, r, `Across ${sems.length} semesters`);
+   408→    getNotificationProvider().show({
+   409→      kind: "success",
+   410→      title: `CGPA: ${r.value.toFixed(2)}`,
+   411→      message: `${r.meta?.totalCredits} credits earned across ${sems.length} semesters`,
+   412→    });
+   413→  };
+   414→
+   415→  return (
+   416→    <div className="grid lg:grid-cols-3 gap-4">
+   417→      <div className="lg:col-span-2 space-y-3">
+   418→        <GlassCard className="p-5">
+   419→          <div className="flex items-center justify-between mb-3">
+   420→            <h3 className="font-semibold">Semesters</h3>
+   421→            <button
+   422→              onClick={addSem}
+   423→              className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition flex items-center gap-1.5"
+   424→            >
+   425→              <Plus className="size-3.5" /> Add semester
+   426→            </button>
+   427→          </div>
+   428→          <div className="space-y-2">
+   429→            {sems.map((s, i) => (
+   430→              <div key={i} className="grid grid-cols-12 gap-2 items-end p-3 rounded-xl bg-secondary/40">
+   431→                <div className="col-span-3 sm:col-span-2 flex items-center justify-center">
+   432→                  <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+   433→                    S{i + 1}
+   434→                  </div>
+   435→                </div>
+   436→                <div className="col-span-4 sm:col-span-5">
+   437→                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+   438→                    SGPA
+   439→                  </Label>
+   440→                  <Input
+   441→                    type="number"
+   442→                    step="0.01"
+   443→                    min={0}
+   444→                    max={10}
+   445→                    value={s.sgpa}
+   446→                    onChange={(e) => update(i, { sgpa: Number(e.target.value) })}
+   447→                    className="mt-1 h-9 bg-background"
+   448→                  />
+   449→                </div>
+   450→                <div className="col-span-4 sm:col-span-4">
+   451→                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+   452→                    Credits
+   453→                  </Label>
+   454→                  <Input
+   455→                    type="number"
+   456→                    min={1}
+   457→                    value={s.credits}
+   458→                    onChange={(e) => update(i, { credits: Number(e.target.value) })}
+   459→                    className="mt-1 h-9 bg-background"
+   460→                  />
+   461→                </div>
+   462→                <div className="col-span-1 flex justify-end">
+   463→                  <button
+   464→                    onClick={() => removeSem(i)}
+   465→                    className="size-9 rounded-lg hover:bg-destructive/10 hover:text-destructive flex items-center justify-center transition"
+   466→                    aria-label="Remove semester"
+   467→                  >
+   468→                    <X className="size-4" />
+   469→                  </button>
+   470→                </div>
+   471→              </div>
+   472→            ))}
+   473→          </div>
+   474→        </GlassCard>
+   475→        <div className="flex gap-2">
+   476→          <Button onClick={compute} className="flex-1 h-11 rounded-full shadow-soft">
+   477→            <Award className="size-4 mr-2" /> Calculate CGPA
+   478→          </Button>
+   479→        </div>
+   480→      </div>
+   481→      <div className="space-y-4">
+   482→        {result ? (
+   483→          <ResultDisplay
+   484→            label="Your CGPA"
+   485→            value={result.value}
+   486→            max={10}
+   487→            hint={`${result.meta?.totalCredits} credits across ${result.meta?.semesters} semesters`}
+   488→          />
+   489→        ) : (
+   490→          <GlassCard className="p-8 flex flex-col items-center justify-center text-center min-h-[200px]">
+   491→            <SketchBooks size={80} color="lavender" />
+   492→            <p className="text-sm text-muted-foreground mt-3 italic">
+   493→              Enter semester SGPA and credits.
+   494→            </p>
+   495→          </GlassCard>
+   496→        )}
+   497→        <HistoryPanel type="CGPA" />
+   498→      </div>
+   499→    </div>
+   500→  );
+   501→}
+   502→
+   503→/* ====================================================================== */
+   504→/* ATTENDANCE CALCULATOR                                                   */
+   505→/* ====================================================================== */
+   506→
+   507→function AttendanceCalculator() {
+   508→  const [attended, setAttended] = useState(28);
+   509→  const [total, setTotal] = useState(40);
+   510→  const [result, setResult] = useState<ReturnType<typeof computeAttendance> | null>(null);
+   511→  const { add: addHistory } = useCalcHistory();
+   512→
+   513→  const compute = () => {
+   514→    const r = computeAttendance(attended, total);
+   515→    setResult(r);
+   516→    addHistory(
+   517→      "ATTENDANCE",
+   518→      { attended, total },
+   519→      { type: "ATTENDANCE", value: r.percentage, percentage: r.percentage, computedAt: new Date().toISOString() },
+   520→      `Attended ${attended}/${total}`,
+   521→    );
+   522→    getNotificationProvider().show({
+   523→      kind: r.atRisk ? "warning" : "success",
+   524→      title: `Attendance: ${r.percentage}%`,
+   525→      message: r.atRisk
+   526→        ? `${r.neededToReach75} more classes needed to reach 75%.`
+   527→        : `You can bunk ${r.canBunk} more classes.`,
+   528→    });
+   529→  };
+   530→
+   531→  return (
+   532→    <div className="grid lg:grid-cols-3 gap-4">
+   533→      <div className="lg:col-span-2 space-y-3">
+   534→        <GlassCard className="p-6">
+   535→          <h3 className="font-semibold mb-4">Attendance inputs</h3>
+   536→          <div className="grid sm:grid-cols-2 gap-4">
+   537→            <div>
+   538→              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+   539→                Classes attended
+   540→              </Label>
+   541→              <Input
+   542→                type="number"
+   543→                min={0}
+   544→                value={attended}
+   545→                onChange={(e) => setAttended(Math.max(0, Number(e.target.value)))}
+   546→                className="mt-1 h-12 text-lg bg-background"
+   547→              />
+   548→            </div>
+   549→            <div>
+   550→              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+   551→                Total classes held
+   552→              </Label>
+   553→              <Input
+   554→                type="number"
+   555→                min={1}
+   556→                value={total}
+   557→                onChange={(e) => setTotal(Math.max(1, Number(e.target.value)))}
+   558→                className="mt-1 h-12 text-lg bg-background"
+   559→              />
+   560→            </div>
+   561→          </div>
+   562→          <Button onClick={compute} className="w-full mt-5 h-11 rounded-full shadow-soft">
+   563→            <CalendarCheck className="size-4 mr-2" /> Calculate
+   564→          </Button>
+   565→        </GlassCard>
+   566→
+   567→        {result && (
+   568→          <GlassCard className="p-5">
+   569→            <h4 className="text-sm font-semibold mb-3">Breakdown</h4>
+   570→            <div className="grid grid-cols-3 gap-3 text-center">
+   571→              <div className="p-3 rounded-xl bg-secondary/50">
+   572→                <p className="text-xs text-muted-foreground">Current</p>
+   573→                <p className="text-xl font-bold mt-1">{result.percentage}%</p>
+   574→              </div>
+   575→              <div className="p-3 rounded-xl bg-secondary/50">
+   576→                <p className="text-xs text-muted-foreground">Need to attend</p>
+   577→                <p className="text-xl font-bold mt-1 text-amber-500">{result.neededToReach75}</p>
+   578→                <p className="text-[10px] text-muted-foreground">to reach 75%</p>
+   579→              </div>
+   580→              <div className="p-3 rounded-xl bg-secondary/50">
+   581→                <p className="text-xs text-muted-foreground">Can bunk</p>
+   582→                <p className="text-xl font-bold mt-1 text-emerald-500">{result.canBunk}</p>
+   583→                <p className="text-[10px] text-muted-foreground">and stay safe</p>
+   584→              </div>
+   585→            </div>
+   586→          </GlassCard>
+   587→        )}
+   588→      </div>
+   589→      <div className="space-y-4">
+   590→        {result ? (
+   591→          <GlassCard className="p-6 flex flex-col items-center justify-center text-center">
+   592→            <CircularProgress
+   593→              value={result.percentage}
+   594→              size={160}
+   595→              color={result.percentage >= 85 ? "var(--success)" : result.percentage >= 75 ? "var(--warning)" : "var(--destructive)"}
+   596→              label={<span className="text-3xl font-bold"><AnimatedCounter value={result.percentage} decimals={1} />%</span>}
+   597→              sublabel={result.atRisk ? "Below 75% — at risk" : "Above threshold"}
+   598→            />
+   599→            <p className="text-sm text-muted-foreground mt-4">
+   600→              {result.atRisk
+   601→                ? "⚠️ You need to attend more classes to be eligible for exams."
+   602→                : "✓ You're safe. Keep up the consistency."}
+   603→            </p>
+   604→          </GlassCard>
+   605→        ) : (
+   606→          <GlassCard className="p-8 flex flex-col items-center justify-center text-center min-h-[200px]">
+   607→            <SketchPencil size={80} color="amber" />
+   608→            <p className="text-sm text-muted-foreground mt-3 italic">
+   609→              Enter attendance and tap Calculate.
+   610→            </p>
+   611→          </GlassCard>
+   612→        )}
+   613→        <HistoryPanel type="ATTENDANCE" />
+   614→      </div>
+   615→    </div>
+   616→  );
+   617→}
+   618→
+   619→/* ====================================================================== */
+   620→/* INTERNAL MARKS CALCULATOR                                               */
+   621→/* ====================================================================== */
+   622→
+   623→function InternalMarksCalculator() {
+   624→  const [series1, setSeries1] = useState(28);
+   625→  const [series2, setSeries2] = useState(32);
+   626→  const [assignment, setAssignment] = useState(8);
+   627→  const [attendance, setAttendance] = useState(7);
+   628→  const [result, setResult] = useState<ReturnType<typeof computeInternalMarks> | null>(null);
+   629→  const { add: addHistory } = useCalcHistory();
+   630→
+   631→  const compute = () => {
+   632→    const r = computeInternalMarks({ series1, series2, assignment, attendance });
+   633→    setResult(r);
+   634→    fireCelebration();
+   635→    addHistory("INTERNAL_MARKS", { series1, series2, assignment, attendance }, r, "Internal marks");
+   636→    getNotificationProvider().show({
+   637→      kind: "success",
+   638→      title: `Internal: ${r.value}/70`,
+   639→      message: `Best series: ${r.meta?.bestSeries}/50`,
+   640→    });
+   641→  };
+   642→
+   643→  return (
+   644→    <div className="grid lg:grid-cols-3 gap-4">
+   645→      <div className="lg:col-span-2 space-y-3">
+   646→        <GlassCard className="p-6">
+   647→          <h3 className="font-semibold mb-4">Internal assessment inputs</h3>
+   648→          <div className="grid sm:grid-cols-2 gap-4">
+   649→            <LabeledInput label="Series-1 marks" sub="/50" value={series1} onChange={setSeries1} max={50} />
+   650→            <LabeledInput label="Series-2 marks" sub="/50" value={series2} onChange={setSeries2} max={50} />
+   651→            <LabeledInput label="Assignment" sub="/10" value={assignment} onChange={setAssignment} max={10} />
+   652→            <LabeledInput label="Attendance" sub="/10" value={attendance} onChange={setAttendance} max={10} />
+   653→          </div>
+   654→          <Button onClick={compute} className="w-full mt-5 h-11 rounded-full shadow-soft">
+   655→            <ClipboardList className="size-4 mr-2" /> Calculate Internal
+   656→          </Button>
+   657→        </GlassCard>
+   658→        {result && (
+   659→          <GlassCard className="p-5">
+   660→            <h4 className="text-sm font-semibold mb-3">Breakdown</h4>
+   661→            <div className="grid grid-cols-3 gap-3 text-center">
+   662→              <div className="p-3 rounded-xl bg-secondary/50">
+   663→                <p className="text-xs text-muted-foreground">Best series</p>
+   664→                <p className="text-xl font-bold mt-1">{String(result.meta?.bestSeries)}/50</p>
+   665→              </div>
+   666→              <div className="p-3 rounded-xl bg-secondary/50">
+   667→                <p className="text-xs text-muted-foreground">Assignment</p>
+   668→                <p className="text-xl font-bold mt-1">{assignment}/10</p>
+   669→              </div>
+   670→              <div className="p-3 rounded-xl bg-secondary/50">
+   671→                <p className="text-xs text-muted-foreground">Attendance</p>
+   672→                <p className="text-xl font-bold mt-1">{attendance}/10</p>
+   673→              </div>
+   674→            </div>
+   675→          </GlassCard>
+   676→        )}
+   677→      </div>
+   678→      <div className="space-y-4">
+   679→        {result ? (
+   680→          <ResultDisplay
+   681→            label="Internal Marks"
+   682→            value={result.value}
+   683→            suffix="/70"
+   684→            decimals={1}
+   685→            hint={`${result.percentage}% of internal component`}
+   686→          />
+   687→        ) : (
+   688→          <GlassCard className="p-8 flex flex-col items-center justify-center text-center min-h-[200px]">
+   689→            <SketchCoffeeCup size={80} color="coral" />
+   690→            <p className="text-sm text-muted-foreground mt-3 italic">Fill series + assignment + attendance.</p>
+   691→          </GlassCard>
+   692→        )}
+   693→        <HistoryPanel type="INTERNAL_MARKS" />
+   694→      </div>
+   695→    </div>
+   696→  );
+   697→}
+   698→
+   699→/* ====================================================================== */
+   700→/* PASS CALCULATOR                                                         */
+   701→/* ====================================================================== */
+   702→
+   703→function PassCalculator() {
+   704→  const [internal, setInternal] = useState(22);
+   705→  const [passMark, setPassMark] = useState(40);
+   706→  const [totalMarks, setTotalMarks] = useState(100);
+   707→  const [result, setResult] = useState<ReturnType<typeof computePassMarks> | null>(null);
+   708→  const { add: addHistory } = useCalcHistory();
+   709→
+   710→  const compute = () => {
+   711→    const r = computePassMarks({
+   712→      internalOutOf30: internal,
+   713→      passMark,
+   714→      totalMarks,
+   715→    });
+   716→    setResult(r);
+   717→    addHistory(
+   718→      "PASS_CALCULATOR",
+   719→      { internal, passMark, totalMarks },
+   720→      r,
+   721→      `Need ${r.value}/${r.meta?.externalTotal} in end-sem`,
+   722→    );
+   723→    getNotificationProvider().show({
+   724→      kind: "info",
+   725→      title: `Score ${r.value} in end-sem`,
+   726→      message: `Out of ${r.meta?.externalTotal} — to reach pass mark of ${passMark}.`,
+   727→    });
+   728→  };
+   729→
+   730→  return (
+   731→    <div className="grid lg:grid-cols-3 gap-4">
+   732→      <div className="lg:col-span-2 space-y-3">
+   733→        <GlassCard className="p-6">
+   734→          <h3 className="font-semibold mb-4">Pass calculator inputs</h3>
+   735→          <div className="grid sm:grid-cols-3 gap-4">
+   736→            <LabeledInput label="Internal marks" sub="/30" value={internal} onChange={setInternal} max={30} />
+   737→            <LabeledInput label="Pass mark" sub="/100" value={passMark} onChange={setPassMark} max={100} />
+   738→            <LabeledInput label="Total marks" sub="" value={totalMarks} onChange={setTotalMarks} max={100} />
+   739→          </div>
+   740→          <Button onClick={compute} className="w-full mt-5 h-11 rounded-full shadow-soft">
+   741→            <Target className="size-4 mr-2" /> Calculate required marks
+   742→          </Button>
+   743→        </GlassCard>
+   744→        {result && (
+   745→          <GlassCard className="p-5">
+   746→            <h4 className="text-sm font-semibold mb-3">Breakdown</h4>
+   747→            <div className="space-y-2 text-sm">
+   748→              <Row label="Your internal" value={`${internal} / 30`} />
+   749→              <Row label="External is out of" value={`${String(result.meta?.externalTotal)}`} />
+   750→              <Row label="You need" value={`${result.value} marks in end-sem`} bold />
+   751→              <Row label="That's" value={`${result.percentage}% of end-sem`} />
+   752→            </div>
+   753→          </GlassCard>
+   754→        )}
+   755→      </div>
+   756→      <div className="space-y-4">
+   757→        {result ? (
+   758→          <GradientCard gradient="warm" className="p-6 text-center">
+   759→            <p className="text-xs uppercase tracking-widest opacity-80 font-semibold">
+   760→              Required in End-Sem
+   761→            </p>
+   762→            <div className="mt-3 flex items-baseline justify-center gap-2">
+   763→              <span className="text-6xl font-bold tabular-nums">
+   764→                <AnimatedCounter key={result.value} value={result.value} decimals={0} />
+   765→              </span>
+   766→              <span className="text-xl opacity-80">/ {result.meta?.externalTotal}</span>
+   767→            </div>
+   768→            <p className="text-sm opacity-90 mt-3">
+   769→              Aim higher — this is the bare minimum.
+   770→            </p>
+   771→          </GradientCard>
+   772→        ) : (
+   773→          <GlassCard className="p-8 flex flex-col items-center justify-center text-center min-h-[200px]">
+   774→            <div className="flex items-end gap-1">
+   775→              <SketchNotebook size={64} color="plum" />
+   776→              <div className="-ml-2 -mb-1">
+   777→                <SketchPencil size={36} color="amber" />
+   778→              </div>
+   779→            </div>
+   780→            <p className="text-sm text-muted-foreground mt-3 italic">Enter internal + pass mark.</p>
+   781→          </GlassCard>
+   782→        )}
+   783→        <HistoryPanel type="PASS_CALCULATOR" />
+   784→      </div>
+   785→    </div>
+   786→  );
+   787→}
+   788→
+   789→/* ====================================================================== */
+   790→/* SHARED                                                                  */
+   791→/* ====================================================================== */
+   792→
+   793→function LabeledInput({
+   794→  label,
+   795→  sub,
+   796→  value,
+   797→  onChange,
+   798→  max,
+   799→}: {
+   800→  label: string;
+   801→  sub?: string;
+   802→  value: number;
+   803→  onChange: (v: number) => void;
+   804→  max?: number;
+   805→}) {
+   806→  return (
+   807→    <div>
+   808→      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+   809→        {label} {sub && <span className="text-muted-foreground/70 normal-case">({sub})</span>}
+   810→      </Label>
+   811→      <Input
+   812→        type="number"
+   813→        min={0}
+   814→        max={max}
+   815→        value={value}
+   816→        onChange={(e) => onChange(Math.max(0, Number(e.target.value)))}
+   817→        className="mt-1 h-12 text-lg bg-background"
+   818→      />
+   819→    </div>
+   820→  );
+   821→}
+   822→
+   823→function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+   824→  return (
+   825→    <div className="flex items-center justify-between py-1.5 border-b border-border/40 last:border-0">
+   826→      <span className="text-muted-foreground">{label}</span>
+   827→      <span className={bold ? "font-semibold text-primary" : "font-medium"}>{value}</span>
+   828→    </div>
+   829→  );
+   830→}
+   831→
+   832→function HistoryPanel({ type }: { type: string }) {
+   833→  const { entries } = useCalcHistory(type as CalculatorType);
+   834→  if (entries.length === 0) {
+   835→    return (
+   836→      <GlassCard className="p-4 text-center">
+   837→        <History className="size-5 mx-auto text-muted-foreground/60 mb-1" />
+   838→        <p className="text-xs text-muted-foreground">No history yet</p>
+   839→      </GlassCard>
+   840→    );
+   841→  }
+   842→  return (
+   843→    <GlassCard className="p-4">
+   844→      <div className="flex items-center gap-2 mb-2">
+   845→        <History className="size-4 text-muted-foreground" />
+   846→        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+   847→          History
+   848→        </h4>
+   849→      </div>
+   850→      <div className="space-y-1 max-h-48 overflow-y-auto">
+   851→        {entries.slice(0, 8).map((e) => (
+   852→          <div key={e.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-secondary/40">
+   853→            <div className="min-w-0">
+   854→              <p className="text-xs font-medium truncate">{e.label ?? e.type}</p>
+   855→              <p className="text-[10px] text-muted-foreground">{formatDate(e.createdAt)}</p>
+   856→            </div>
+   857→            <span className="text-sm font-bold tabular-nums">{e.output.value.toFixed(2)}</span>
+   858→          </div>
+   859→        ))}
+   860→      </div>
+   861→    </GlassCard>
+   862→  );
+   863→}
+   864→

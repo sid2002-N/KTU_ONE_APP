@@ -1,0 +1,290 @@
+// KTU One — Prisma Schema (Phase 2)
+// SQLite for dev; swap datasource provider to "postgresql" + connection string for Supabase.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/* ===================================================================== */
+/* Reference data (curated, not scraped)                                  */
+/* ===================================================================== */
+
+model Branch {
+  code     String   @id // e.g. "CSE", "EC"
+  name     String   // short name e.g. "CSE"
+  fullName String   // e.g. "Computer Science & Engineering"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("branches")
+}
+
+model Semester {
+  id           String   @id @default(cuid())
+  number       Int      // 1..8
+  branchCode   String
+  academicYear String?  // e.g. "2025-2026"
+  totalCredits Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([number, branchCode, academicYear])
+  @@map("semesters")
+}
+
+model Subject {
+  id         String   @id @default(cuid())
+  code       String   @unique // e.g. "CST301"
+  name       String
+  semester   Int      // 1..8
+  branchCode String
+  credits    Int
+  type       String   // CORE | ELECTIVE | LAB | PROJECT | HONORS
+  isElective Boolean  @default(false)
+  isLab      Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([branchCode, semester])
+  @@map("subjects")
+}
+
+/* ===================================================================== */
+/* Content (curated by admin; Phase 3)                                    */
+/* ===================================================================== */
+
+model QuestionPaper {
+  id            String   @id @default(cuid())
+  title         String
+  subjectCode   String
+  subjectName   String
+  semester      Int
+  branchCode    String
+  year          Int
+  month         Int
+  examType      String   // END_SEM | SERIES_1 | SERIES_2 | MODEL
+  fileUrl       String
+  fileSizeBytes Int      @default(0)
+  pageCount     Int      @default(0)
+  downloads     Int      @default(0)
+  views         Int      @default(0)
+  uploadedAt    DateTime @default(now())
+  deletedAt     DateTime?
+
+  @@index([branchCode, semester, year])
+  @@index([subjectCode])
+  @@map("question_papers")
+}
+
+model Syllabus {
+  id          String   @id @default(cuid())
+  title       String
+  semester    Int
+  branchCode  String
+  subjectCode String
+  subjectName String
+  version     String   @default("v2019.1")
+  fileUrl     String
+  lastUpdated DateTime @default(now())
+  modules     Int      @default(5)
+  deletedAt   DateTime?
+
+  @@index([branchCode, semester])
+  @@map("syllabus")
+}
+
+model KTUNotice {
+  id          String   @id @default(cuid())
+  key         String   @unique // slug from scraper (dedup key)
+  title       String
+  description String
+  category    String   @default("General") // Academic | Examination | Scholarship | Placement | Cultural | General
+  publishedAt DateTime
+  priority    String   @default("Normal") // Pinned | High | Normal | Low
+  pdfUrl      String?
+  externalUrl String?
+  tags        String   @default("[]") // JSON array as string (SQLite limitation)
+  pinned      Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  @@index([publishedAt])
+  @@index([category, active])
+  @@map("ktu_notices")
+}
+
+model CalendarEvent {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  type            String   // EXAM | HOLIDAY | RESULT | REGISTRATION | WORKSHOP | DEADLINE | EVENT
+  startDate       DateTime
+  endDate         DateTime
+  allDay          Boolean  @default(true)
+  color           String   @default("#9333EA")
+  reminderEnabled Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([startDate])
+  @@map("calendar_events")
+}
+
+/* ===================================================================== */
+/* Auth + per-student data                                                */
+/* ===================================================================== */
+
+model Student {
+  id             String   @id @default(cuid())
+  registerNumber String   @unique
+  name           String
+  branchCode     String?
+  branchName     String?  // raw from scraper (full name)
+  semester       Int?
+  scheme         String?
+  email          String?
+  phone          String?
+  avatarInitials String?
+  admissionYear  Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastLoginAt    DateTime?
+
+  cachedData     CachedStudentData?
+  refreshTokens  RefreshToken[]
+  bookmarks      Bookmark[]
+  calcHistory    CalculatorHistoryEntry[]
+  supporterPurchases SupporterPurchase[]
+
+  @@map("students")
+}
+
+model CachedStudentData {
+  studentId String   @id
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  rawJson   String   // full scraper response as JSON string
+  cachedAt  DateTime @default(now())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("cached_student_data")
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique // bcrypt hash of the refresh token
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([studentId])
+  @@map("refresh_tokens")
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  kind      String   // paper | syllabus | notice | subject
+  refId     String
+  title     String
+  subtitle  String?
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, kind, refId])
+  @@index([studentId, kind])
+  @@map("bookmarks")
+}
+
+model CalculatorHistoryEntry {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  type      String   // SGPA | CGPA | ATTENDANCE | INTERNAL_MARKS | PASS_CALCULATOR
+  input     String   // JSON string
+  output    String   // JSON string
+  label     String?
+  createdAt DateTime @default(now())
+
+  @@index([studentId, type])
+  @@map("calculator_history")
+}
+
+/* ===================================================================== */
+/* Payments                                                               */
+/* ===================================================================== */
+
+model SupporterPurchase {
+  id            String   @id @default(cuid())
+  studentId     String?
+  student       Student? @relation(fields: [studentId], references: [id])
+  amount        Int
+  currency      String   @default("INR")
+  status        String   @default("Pending") // Pending | Success | Failed | Refunded
+  provider      String   @default("Mock") // Mock | Razorpay
+  transactionId String
+  receiptUrl    String?
+  purchasedAt   DateTime @default(now())
+
+  @@index([studentId])
+  @@map("supporter_purchases")
+}
+
+/* ===================================================================== */
+/* App settings (key/value)                                               */
+/* ===================================================================== */
+
+model AppSettings {
+  key       String   @id
+  value     String   // JSON string
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+/* ===================================================================== */
+/* Exam Timetables                                                         */
+/* ===================================================================== */
+
+model ExamTimetable {
+  id           String   @id @default(cuid())
+  title        String   // e.g. "S5 End Semester December 2025"
+  examType     String   // END_SEM | SERIES_1 | SERIES_2
+  semester     Int      // 1-8
+  branchCode   String   // CSE, EC, EEE, or ALL
+  academicYear String?  // e.g. "2025-2026"
+  isActive     Boolean  @default(true)
+  publishedAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  entries      ExamTimetableEntry[]
+
+  @@index([semester, branchCode, isActive])
+  @@map("exam_timetables")
+}
+
+model ExamTimetableEntry {
+  id            String   @id @default(cuid())
+  timetableId   String
+  timetable     ExamTimetable @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  date          DateTime
+  session       String   // FN (Forenoon) | AN (Afternoon)
+  subjectCode   String
+  subjectName   String
+  createdAt     DateTime @default(now())
+
+  @@index([timetableId])
+  @@map("exam_timetable_entries")
+}

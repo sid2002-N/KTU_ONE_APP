@@ -1,0 +1,794 @@
+     1→"use client";
+     2→
+     3→import { motion, useReducedMotion } from "framer-motion";
+     4→import { useEffect, useState } from "react";
+     5→import { useQuery } from "@tanstack/react-query";
+     6→import {
+     7→  Trophy,
+     8→  Award,
+     9→  CalendarCheck,
+    10→  ClipboardList,
+    11→  Target,
+    12→  FileText,
+    13→  BookOpen,
+    14→  Bell,
+    15→  CalendarDays,
+    16→  Sparkles,
+    17→  ArrowRight,
+    18→  TrendingUp,
+    19→  Clock,
+    20→  ChevronRight,
+    21→  Heart,
+    22→  GraduationCap,
+    23→  LogIn,
+    24→} from "lucide-react";
+    25→import { GlassCard } from "@/components/ui-custom/glass-card";
+    26→import { StatCard } from "@/components/ui-custom/stat-card";
+    27→import { AnimatedCounter } from "@/components/ui-custom/animated-counter";
+    28→import { BannerAd } from "@/components/ui-custom/banner-ad";
+    29→import { HandwrittenText } from "@/components/ui-custom/handwritten-text";
+    30→import { Skeleton } from "@/components/ui/skeleton";
+    31→import {
+    32→  SketchArrow,
+    33→  SketchHeart,
+    34→  SketchCoffeeCup,
+    35→  SketchBooks,
+    36→  SketchPencil,
+    37→  SketchNotebook,
+    38→} from "@/components/ui-custom/sketch-elements";
+    39→import { CardDecoration } from "@/components/ui-custom/card-decoration";
+    40→import { EditorialDivider } from "@/components/ui-custom/editorial-divider";
+    41→import { useNavStore } from "@/store/nav-store";
+    42→import { useSupporterStore } from "@/store/supporter-store";
+    43→import { useAuthStore } from "@/store/auth-store";
+    44→import { useCalcHistory } from "@/features/calculators/use-calc-history";
+    45→import {
+    46→  CALCULATORS,
+    47→  APP_VERSION,
+    48→  UNIVERSITY_NAME,
+    49→  type NavKey,
+    50→  type CalculatorKey,
+    51→} from "@/lib/constants";
+    52→import {
+    53→  getDashboardStats,
+    54→  getRecentNotices,
+    55→  getUpcomingEvent,
+    56→  getRecentPapers,
+    57→} from "@/features/dashboard/actions";
+    58→import { getActiveTimetable, type TimetableWithEntries } from "@/features/timetable/actions";
+    59→import { formatRelativeTime, formatDate, formatNumber } from "@/lib/utils/calc";
+    60→
+    61→const calcIcons: Record<CalculatorKey, React.ComponentType<{ className?: string }>> = {
+    62→  sgpa: Trophy,
+    63→  cgpa: Award,
+    64→  attendance: CalendarCheck,
+    65→  internal: ClipboardList,
+    66→  pass: Target,
+    67→};
+    68→
+    69→const accentMap: Record<string, "plum" | "amber" | "mint" | "coral"> = {
+    70→  plum: "plum",
+    71→  amber: "amber",
+    72→  mint: "mint",
+    73→  coral: "coral",
+    74→};
+    75→
+    76→export function Dashboard() {
+    77→  const set = useNavStore((s) => s.set);
+    78→  const setSupportOpen = useNavStore((s) => s.setSupportOpen);
+    79→  const setLoginOpen = useNavStore((s) => s.setLoginOpen);
+    80→  const isSupporter = useSupporterStore((s) => s.isSupporter);
+    81→  const profile = useAuthStore((s) => s.profile);
+    82→  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+    83→  const prefersReduced = useReducedMotion();
+    84→
+    85→  const [greeting, setGreeting] = useState("Good morning");
+    86→  useEffect(() => {
+    87→    const h = new Date().getHours();
+    88→    const g = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+    89→    Promise.resolve().then(() => setGreeting(g));
+    90→  }, []);
+    91→
+    92→  const firstName = (profile?.name ?? "Student").split(" ")[0]!;
+    93→
+    94→  // Fetch dashboard data via Server Actions + TanStack Query
+    95→  const { data: stats, isLoading: statsLoading } = useQuery({
+    96→    queryKey: ["dashboard", "stats"],
+    97→    queryFn: () => getDashboardStats(),
+    98→    staleTime: 5 * 60 * 1000,
+    99→  });
+   100→  const { data: recentNotices = [], isLoading: noticesLoading } = useQuery({
+   101→    queryKey: ["dashboard", "recent-notices"],
+   102→    queryFn: () => getRecentNotices(3),
+   103→    staleTime: 60 * 1000,
+   104→  });
+   105→  const { data: upcomingEvent, isLoading: upcomingLoading } = useQuery({
+   106→    queryKey: ["dashboard", "upcoming"],
+   107→    queryFn: () => getUpcomingEvent(),
+   108→    staleTime: 5 * 60 * 1000,
+   109→  });
+   110→  const { data: recentPapers = [], isLoading: papersLoading } = useQuery({
+   111→    queryKey: ["dashboard", "recent-papers"],
+   112→    queryFn: () => getRecentPapers(4),
+   113→    staleTime: 5 * 60 * 1000,
+   114→  });
+   115→
+   116→  // Fetch real CGPA when authenticated
+   117→  const { data: cgpaData } = useQuery({
+   118→    queryKey: ["cgpa"],
+   119→    queryFn: async () => {
+   120→      const res = await fetch("/api/v1/cgpa", { credentials: "include" });
+   121→      if (!res.ok) return null;
+   122→      const data = await res.json();
+   123→      return data.cgpa as { cgpa: number; totalCredits: number; creditsEarned: number };
+   124→    },
+   125→    enabled: isAuthenticated,
+   126→    staleTime: 60 * 60 * 1000,
+   127→  });
+   128→
+   129→  // Calc history via unified hook
+   130→  const { entries: calcHistory } = useCalcHistory();
+   131→  const recentHistory = calcHistory.slice(0, 3);
+   132→
+   133→  return (
+   134→    <div className="space-y-6">
+   135→      {/* Hero — editorial notebook cover (paper, not gradient) */}
+   136→      <motion.div
+   137→        initial={prefersReduced ? false : { opacity: 0, y: 12 }}
+   138→        animate={{ opacity: 1, y: 0 }}
+   139→        transition={{ duration: 0.5 }}
+   140→      >
+   141→        <div className="notebook-cover p-5 sm:p-10 pl-8 sm:pl-14 float-subtle">
+   142→          {/* Study desk illustrations cluster — top right */}
+   143→          <motion.div
+   144→            className="absolute top-8 right-8 hidden lg:flex items-end gap-1 pointer-events-none opacity-90"
+   145→            initial={prefersReduced ? false : { opacity: 0, y: -10 }}
+   146→            animate={{ opacity: 0.9, y: 0 }}
+   147→            transition={{ delay: 0.5, duration: 0.6 }}
+   148→          >
+   149→            <SketchBooks size={56} color="amber" />
+   150→            <div className="-ml-2 -mb-1">
+   151→              <SketchCoffeeCup size={36} color="coral" />
+   152→            </div>
+   153→            <div className="-ml-1 -mb-2">
+   154→              <SketchPencil size={28} color="amber" />
+   155→            </div>
+   156→          </motion.div>
+   157→
+   158→          <div className="flex items-start justify-between gap-4 flex-wrap relative">
+   159→            <div className="flex-1 min-w-[200px]">
+   160→              {/* Handwritten annotation above heading */}
+   161→              <motion.div
+   162→                className="mb-3"
+   163→                initial={prefersReduced ? false : { opacity: 0, x: -8 }}
+   164→                animate={{ opacity: 1, x: 0 }}
+   165→                transition={{ delay: 0.3, duration: 0.5 }}
+   166→              >
+   167→                <HandwrittenText as="p" color="amber" className="text-2xl rotate-[-3deg] inline-block">
+   168→                  {greeting}, {firstName} 👋
+   169→                </HandwrittenText>
+   170→              </motion.div>
+   171→
+   172→              {/* Serif display headline — embossed into notebook cover */}
+   173→              <h1 className="font-serif-display embossed-title-ink text-3xl sm:text-5xl lg:text-6xl leading-[1.05]">
+   174→                Your academic day,
+   175→                <br className="hidden sm:block" />
+   176→                <span className="relative inline-block italic">
+   177→                  sorted.
+   178→                  <HandwrittenText
+   179→                    as="span"
+   180→                    color="amber"
+   181→                    className="absolute -top-7 -right-6 text-2xl rotate-[8deg] hidden sm:block not-italic"
+   182→                  >
+   183→                    !
+   184→                  </HandwrittenText>
+   185→                </span>
+   186→              </h1>
+   187→
+   188→              <p className="mt-4 text-sm sm:text-base text-muted-foreground max-w-md leading-relaxed">
+   189→                {profile
+   190→                  ? `${profile.branchName} · Semester ${profile.semester}`
+   191→                  : "Sign in to see your CGPA, attendance and results."}
+   192→              </p>
+   193→
+   194→              <div className="flex flex-wrap items-center gap-2 mt-7">
+   195→                <button
+   196→                  onClick={() => set("calculators")}
+   197→                  className="btn-tactile px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-medium flex items-center gap-2 shadow-soft hover:opacity-90"
+   198→                >
+   199→                  <Sparkles className="size-4" />
+   200→                  Open a calculator
+   201→                </button>
+   202→                {!isSupporter && (
+   203→                  <button
+   204→                    onClick={() => setSupportOpen(true)}
+   205→                    className="btn-tactile px-5 py-2.5 rounded-full bg-secondary text-secondary-foreground text-sm font-semibold hover:bg-secondary/80 flex items-center gap-2 border border-border/60"
+   206→                  >
+   207→                    <Heart className="size-3.5" fill="currentColor" />
+   208→                    Go ad-free · ₹99
+   209→                  </button>
+   210→                )}
+   211→              </div>
+   212→            </div>
+   213→            {/* Editorial illustration cluster */}
+   214→            <div className="hidden sm:block relative">
+   215→              <motion.div
+   216→                className="flex items-end gap-1"
+   217→                initial={prefersReduced ? false : { opacity: 0, scale: 0.85, rotate: -8 }}
+   218→                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+   219→                transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 16 }}
+   220→              >
+   221→                <SketchNotebook size={120} color="plum" />
+   222→                <div className="-ml-3 -mb-1">
+   223→                  <SketchPencil size={44} color="amber" />
+   224→                </div>
+   225→              </motion.div>
+   226→              {/* Tiny floating sketch arrow accent */}
+   227→              <motion.div
+   228→                className="absolute -top-3 -left-8"
+   229→                initial={prefersReduced ? false : { opacity: 0, y: 8 }}
+   230→                animate={{ opacity: 1, y: 0 }}
+   231→                transition={{ delay: 0.8, duration: 0.6 }}
+   232→              >
+   233→                <SketchArrow size={36} color="amber" />
+   234→              </motion.div>
+   235→            </div>
+   236→          </div>
+   237→        </div>
+   238→      </motion.div>
+   239→
+   240→      {/* Quick stats — dynamic, DB-backed */}
+   241→      {statsLoading ? (
+   242→        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+   243→          {Array.from({ length: 4 }).map((_, i) => (
+   244→            <Skeleton key={i} className="h-32 rounded-2xl" />
+   245→          ))}
+   246→        </div>
+   247→      ) : (
+   248→        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+   249→          <StatCard
+   250→            label="Current CGPA"
+   251→            value={
+   252→              isAuthenticated && cgpaData ? (
+   253→                <AnimatedCounter value={cgpaData.cgpa} decimals={2} />
+   254→              ) : isAuthenticated ? (
+   255→                <span className="text-base text-muted-foreground">Loading…</span>
+   256→              ) : (
+   257→                <span className="text-base text-muted-foreground">Login</span>
+   258→              )
+   259→            }
+   260→            icon={<TrendingUp className="size-5" />}
+   261→            accent="plum"
+   262→            variant="index"
+   263→            rotate={-1}
+   264→            hint={
+   265→              isAuthenticated && cgpaData
+   266→                ? `${cgpaData.totalCredits} credits earned`
+   267→                : "Sign in to view"
+   268→            }
+   269→          />
+   270→          <StatCard
+   271→            label="Attendance"
+   272→            value={<span className="text-base text-muted-foreground">Manual</span>}
+   273→            icon={<CalendarCheck className="size-5" />}
+   274→            accent="amber"
+   275→            variant="index"
+   276→            rotate={1}
+   277→            hint="Use the attendance calculator"
+   278→          />
+   279→          <StatCard
+   280→            label="Papers"
+   281→            value={<AnimatedCounter value={stats?.papers ?? 0} />}
+   282→            icon={<FileText className="size-5" />}
+   283→            accent="mint"
+   284→            variant="index"
+   285→            rotate={-0.5}
+   286→            hint="Available to download"
+   287→          />
+   288→          <StatCard
+   289→            label="Notices"
+   290→            value={<AnimatedCounter value={stats?.notices ?? 0} />}
+   291→            icon={<Bell className="size-5" />}
+   292→            accent="coral"
+   293→            variant="index"
+   294→            rotate={0.5}
+   295→            hint={`${stats?.unreadNotices ?? 0} unread this week`}
+   296→          />
+   297→        </div>
+   298→      )}
+   299→
+   300→      {/* Quick actions — calculator shortcuts */}
+   301→      <section>
+   302→        <SectionHeader
+   303→          title="Quick actions"
+   304→          subtitle="Jump straight into a calculator"
+   305→          onSeeAll={() => set("calculators" as NavKey)}
+   306→          accent="let's go!"
+   307→        />
+   308→        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+   309→          {CALCULATORS.map((calc, i) => {
+   310→            const Icon = calcIcons[calc.key];
+   311→            // Map accent to CSS custom property for notebook-tab top strip
+   312→            const tabColor =
+   313→              calc.accent === "plum"
+   314→                ? "oklch(0.50 0.12 340)"
+   315→                : calc.accent === "amber"
+   316→                  ? "oklch(0.62 0.11 70)"
+   317→                  : calc.accent === "mint"
+   318→                    ? "oklch(0.58 0.09 155)"
+   319→                    : "oklch(0.55 0.10 25)";
+   320→            return (
+   321→              <motion.button
+   322→                key={calc.key}
+   323→                initial={prefersReduced ? false : { opacity: 0, y: 10 }}
+   324→                animate={{ opacity: 1, y: 0 }}
+   325→                transition={{ delay: i * 0.04, duration: 0.4 }}
+   326→                onClick={() => set("calculators")}
+   327→                style={{
+   328→                  transform: `rotate(${i % 2 === 0 ? -0.5 : 0.5}deg)`,
+   329→                  // @ts-expect-error custom property
+   330→                  "--tab-color": tabColor,
+   331→                }}
+   332→                className="btn-tactile notebook-tab notebook-tab-hover rounded-2xl p-4 text-left group relative"
+   333→              >
+   334→                <div
+   335→                  className={`size-10 rounded-xl flex items-center justify-center mb-3 border border-foreground/10 ${
+   336→                    calc.accent === "plum"
+   337→                      ? "bg-primary/15 text-primary"
+   338→                      : calc.accent === "amber"
+   339→                        ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+   340→                        : calc.accent === "mint"
+   341→                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+   342→                          : "bg-rose-500/15 text-rose-700 dark:text-rose-400"
+   343→                  }`}
+   344→                >
+   345→                  <Icon className="size-5" />
+   346→                </div>
+   347→                <p className="font-serif-display text-base leading-tight">{calc.title.replace(" Calculator", "")}</p>
+   348→                <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">
+   349→                  {calc.description}
+   350→                </p>
+   351→                <div className="mt-2 flex items-center gap-1 text-xs text-primary opacity-0 group-hover:opacity-100 transition">
+   352→                  Open <ArrowRight className="size-3" />
+   353→                </div>
+   354→              </motion.button>
+   355→            );
+   356→          })}
+   357→        </div>
+   358→      </section>
+   359→
+   360→      {/* Upcoming Exams widget — auto-shows from timetable when logged in */}
+   361→      <UpcomingExamsWidget />
+   362→
+   363→      {/* Editorial divider */}
+   364→      <EditorialDivider ornament="diamond" label="your day at a glance" />
+   365→
+   366→      {/* Ad */}
+   367→      <BannerAd slot="home-top" />
+   368→
+   369→      {/* Two-column section: recent activity + upcoming */}
+   370→      <div className="grid lg:grid-cols-3 gap-4">
+   371→        {/* Recent calculations — feels like a notebook page with entries */}
+   372→        <GlassCard variant="lined" className="lg:col-span-2 p-5 pl-12 relative">
+   373→          <div className="tape-corner-tr" aria-hidden="true" />
+   374→          <SectionHeader
+   375→            title="Recent activity"
+   376→            subtitle="What you calculated recently"
+   377→            compact
+   378→            accent="keep going!"
+   379→          />
+   380→          {profile ? (
+   381→            recentHistory.length === 0 ? (
+   382→              <div className="flex flex-col items-center justify-center py-8 text-center">
+   383→                <SketchNotebook size={56} color="plum" />
+   384→                <p className="text-sm text-muted-foreground mt-3 italic max-w-[220px]">
+   385→                  No calculations yet. Run your first calculator to see it here.
+   386→                </p>
+   387→              </div>
+   388→            ) : (
+   389→              <div className="space-y-1.5">
+   390→                {recentHistory.map((h) => (
+   391→                  <button
+   392→                    key={h.id}
+   393→                    onClick={() => set("calculators")}
+   394→                    className="w-full flex items-center justify-between gap-3 py-2.5 px-3 rounded-lg hover:bg-primary/5 transition text-left border border-transparent hover:border-primary/15"
+   395→                  >
+   396→                    <div className="flex items-center gap-3 min-w-0">
+   397→                      <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/15">
+   398→                        {h.type === "SGPA" && <Trophy className="size-4" />}
+   399→                        {h.type === "CGPA" && <Award className="size-4" />}
+   400→                        {h.type === "ATTENDANCE" && <CalendarCheck className="size-4" />}
+   401→                      </div>
+   402→                      <div className="min-w-0">
+   403→                        <p className="font-serif-display text-sm truncate">
+   404→                          {h.label ?? h.type}
+   405→                        </p>
+   406→                        <p className="text-xs text-muted-foreground flex items-center gap-1 italic">
+   407→                          <Clock className="size-3" />
+   408→                          {formatRelativeTime(h.output.computedAt)}
+   409→                        </p>
+   410→                      </div>
+   411→                    </div>
+   412→                    <div className="text-right shrink-0">
+   413→                      <p className="stamped-number text-xl tabular-nums">
+   414→                        {h.output.value.toFixed(2)}
+   415→                      </p>
+   416→                      <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-bold">
+   417→                        {h.type}
+   418→                      </p>
+   419→                    </div>
+   420→                  </button>
+   421→                ))}
+   422→              </div>
+   423→            )
+   424→          ) : (
+   425→            <div className="flex flex-col items-center justify-center py-8 text-center">
+   426→              <SketchNotebook size={64} color="plum" />
+   427→              <p className="font-serif-display text-base mt-3">No history yet</p>
+   428→              <p className="text-sm text-muted-foreground mt-1 italic max-w-[240px]">
+   429→                Log in to see your calculation history synced across devices.
+   430→              </p>
+   431→              <button
+   432→                onClick={() => setLoginOpen(true)}
+   433→                className="btn-tactile mt-4 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition shadow-soft flex items-center gap-1.5"
+   434→              >
+   435→                <LogIn className="size-3.5" />
+   436→                Sign in
+   437→              </button>
+   438→            </div>
+   439→          )}
+   440→        </GlassCard>
+   441→
+   442→        {/* Attendance — manual, no scraper data */}
+   443→        <GlassCard variant="kraft" className="p-5 relative">
+   444→          <CardDecoration variant="cornerHeart" position="top-right" color="coral" />
+   445→          <SectionHeader title="Attendance" subtitle="This semester" compact accent="track it!" />
+   446→          <div className="flex flex-col items-center justify-center py-3">
+   447→            <div className="flex flex-col items-center text-center gap-2 py-6">
+   448→              <CalendarCheck className="size-10 text-foreground/40" />
+   449→              <p className="text-sm text-foreground/70 max-w-[180px] leading-relaxed">
+   450→                KTU doesn't expose attendance data. Use the calculator to track yours manually.
+   451→              </p>
+   452→            </div>
+   453→            <button
+   454→              onClick={() => set("calculators")}
+   455→              className="btn-tactile mt-3 text-xs text-primary hover:underline font-semibold flex items-center gap-1"
+   456→            >
+   457→              Open attendance calculator <ChevronRight className="size-3" />
+   458→            </button>
+   459→          </div>
+   460→        </GlassCard>
+   461→      </div>
+   462→
+   463→      {/* Editorial divider */}
+   464→      <EditorialDivider ornament="star" label="from the university" />
+   465→
+   466→      {/* Notices */}
+   467→      <section>
+   468→        <SectionHeader
+   469→          title="Latest notices"
+   470→          subtitle="From the university"
+   471→          onSeeAll={() => set("notices" as NavKey)}
+   472→          accent="fresh today"
+   473→        />
+   474→        {noticesLoading ? (
+   475→          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+   476→            {Array.from({ length: 3 }).map((_, i) => (
+   477→              <Skeleton key={i} className="h-36 rounded-2xl" />
+   478→            ))}
+   479→          </div>
+   480→        ) : (
+   481→          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+   482→            {recentNotices.map((n, i) => (
+   483→              <GlassCard
+   484→                key={n.id}
+   485→                variant="paper"
+   486→                hover
+   487→                className="p-5 sm:p-6 cursor-pointer"
+   488→                onClick={() => set("notices" as NavKey)}
+   489→              >
+   490→                {/* Tape strip on first card — feels pinned up */}
+   491→                {i === 0 && <div className="tape-corner-tl" aria-hidden="true" />}
+   492→                <div className="flex items-start justify-between gap-2 mb-2">
+   493→                  <span className="text-[10px] uppercase tracking-[0.15em] text-primary font-bold px-2 py-0.5 rounded bg-primary/10 border border-primary/15">
+   494→                    {n.category}
+   495→                  </span>
+   496→                  {n.pinned && (
+   497→                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/20">
+   498→                      ★ Pinned
+   499→                    </span>
+   500→                  )}
+   501→                </div>
+   502→                <p className="font-serif-display text-sm leading-snug line-clamp-2">
+   503→                  {n.title}
+   504→                </p>
+   505→                <p className="text-xs text-muted-foreground mt-2 italic flex items-center gap-1">
+   506→                  <Clock className="size-3" />
+   507→                  {formatRelativeTime(n.publishedAt)}
+   508→                </p>
+   509→              </GlassCard>
+   510→            ))}
+   511→          </div>
+   512→        )}
+   513→      </section>
+   514→
+   515→      {/* Editorial divider */}
+   516→      <EditorialDivider ornament="diamond" label="what's next" />
+   517→
+   518→      {/* Upcoming + Continue Reading */}
+   519→      <div className="grid lg:grid-cols-2 gap-4">
+   520→        {/* Upcoming academic event */}
+   521→        <GlassCard variant="kraft" className="p-5 relative">
+   522→          <CardDecoration variant="pageFold" />
+   523→          <SectionHeader title="Upcoming" subtitle="Next on your calendar" compact accent="don't miss!" />
+   524→          {!profile ? (
+   525→            <div className="flex flex-col items-center justify-center py-8 text-center">
+   526→              <SketchNotebook size={56} color="plum" />
+   527→              <p className="font-serif-display text-base mt-3">Sign in to see your schedule</p>
+   528→              <p className="text-sm text-foreground/70 mt-1 italic max-w-[240px]">
+   529→                Log in to see your exam schedule and academic calendar.
+   530→              </p>
+   531→              <button
+   532→                onClick={() => setLoginOpen(true)}
+   533→                className="btn-tactile mt-4 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition shadow-soft flex items-center gap-1.5"
+   534→              >
+   535→                <LogIn className="size-3.5" />
+   536→                Sign in
+   537→              </button>
+   538→            </div>
+   539→          ) : upcomingLoading ? (
+   540→            <Skeleton className="h-24 rounded-2xl" />
+   541→          ) : upcomingEvent ? (
+   542→            <div className="flex items-start gap-4 p-3 rounded-lg border border-foreground/10 bg-foreground/[0.03]">
+   543→              <div className="text-center shrink-0 px-2">
+   544→                <p className="text-[10px] uppercase tracking-[0.15em] text-foreground/60 font-bold">
+   545→                  {new Date(upcomingEvent.startDate).toLocaleString("en-IN", { month: "short" })}
+   546→                </p>
+   547→                <p className="stamped-number text-3xl text-primary">
+   548→                  {new Date(upcomingEvent.startDate).getDate()}
+   549→                </p>
+   550→              </div>
+   551→              <div className="min-w-0 border-l border-foreground/15 pl-3">
+   552→                <p className="font-serif-display text-sm leading-snug">{upcomingEvent.title}</p>
+   553→                <p className="text-xs text-foreground/70 mt-1 line-clamp-2 italic">
+   554→                  {upcomingEvent.description}
+   555→                </p>
+   556→                <button
+   557→                  onClick={() => set("calendar" as NavKey)}
+   558→                  className="btn-tactile mt-2 text-xs text-primary hover:underline font-semibold flex items-center gap-1"
+   559→                >
+   560→                  View calendar <ChevronRight className="size-3" />
+   561→                </button>
+   562→              </div>
+   563→            </div>
+   564→          ) : (
+   565→            <div className="flex items-center justify-center p-6 text-sm text-foreground/60 italic">
+   566→              No upcoming events
+   567→            </div>
+   568→          )}
+   569→        </GlassCard>
+   570→
+   571→        {/* Continue reading — notebook page */}
+   572→        <GlassCard variant="lined" className="p-5 pl-12 relative">
+   573→          <CardDecoration variant="cornerStar" position="top-right" color="amber" />
+   574→          <SectionHeader
+   575→            title="Continue reading"
+   576→            subtitle="Recently viewed papers"
+   577→            onSeeAll={() => set("papers" as NavKey)}
+   578→            compact
+   579→            accent="pick up where you left off"
+   580→          />
+   581→          {!profile ? (
+   582→            <div className="flex flex-col items-center justify-center py-8 text-center">
+   583→              <SketchNotebook size={56} color="amber" />
+   584→              <p className="font-serif-display text-base mt-3">Browse papers to get started</p>
+   585→              <p className="text-sm text-muted-foreground mt-1 italic max-w-[240px]">
+   586→                Explore previous question papers and save them for later.
+   587→              </p>
+   588→              <button
+   589→                onClick={() => set("papers" as NavKey)}
+   590→                className="btn-tactile mt-4 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition shadow-soft flex items-center gap-1.5"
+   591→              >
+   592→                <FileText className="size-3.5" />
+   593→                Browse papers
+   594→              </button>
+   595→            </div>
+   596→          ) : papersLoading ? (
+   597→            <div className="space-y-2">
+   598→              {Array.from({ length: 3 }).map((_, i) => (
+   599→                <Skeleton key={i} className="h-14 rounded-lg" />
+   600→              ))}
+   601→            </div>
+   602→          ) : recentPapers.length === 0 ? (
+   603→            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground italic">
+   604→              No papers yet
+   605→            </div>
+   606→          ) : (
+   607→            <div className="space-y-1">
+   608→              {recentPapers.slice(0, 3).map((p) => (
+   609→                <button
+   610→                  key={p.id}
+   611→                  onClick={() => set("papers" as NavKey)}
+   612→                  className="w-full flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-primary/5 transition text-left border border-transparent hover:border-primary/15"
+   613→                >
+   614→                  <div className="size-9 rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20">
+   615→                    <FileText className="size-4" />
+   616→                  </div>
+   617→                  <div className="min-w-0 flex-1">
+   618→                    <p className="font-serif-display text-sm truncate">{p.subjectName}</p>
+   619→                    <p className="text-xs text-muted-foreground italic">
+   620→                      {p.examType.replace("_", " ")} · {p.year} · {formatNumber(p.views)} views
+   621→                    </p>
+   622→                  </div>
+   623→                </button>
+   624→              ))}
+   625→            </div>
+   626→          )}
+   627→        </GlassCard>
+   628→      </div>
+   629→
+   630→      {/* Support banner — for non-supporters (kraft paper, no gradient) */}
+   631→      {!isSupporter && (
+   632→        <div className="kraft-card p-6 sm:p-8 relative overflow-hidden float-subtle">
+   633→          {/* Tiny sketch heart accent */}
+   634→          <div className="absolute top-4 right-4 opacity-70">
+   635→            <SketchHeart size={20} color="coral" />
+   636→          </div>
+   637→          <div className="flex items-center gap-5 flex-wrap relative">
+   638→            {/* Editorial illustration */}
+   639→            <div className="shrink-0">
+   640→              <SketchBooks size={84} color="amber" />
+   641→            </div>
+   642→            <div className="flex-1 min-w-[200px]">
+   643→              <HandwrittenText as="p" color="amber" className="text-xl rotate-[-2deg] inline-block mb-1">
+   644→                Hey friend!
+   645→              </HandwrittenText>
+   646→              <h3 className="font-serif-display text-2xl sm:text-3xl tracking-tight text-foreground">
+   647→                Love KTU One?
+   648→              </h3>
+   649→              <p className="text-sm text-foreground/80 mt-2 max-w-md leading-relaxed">
+   650→                Support development for ₹99 lifetime. Remove ads, get a badge,
+   651→                and help every KTU student.
+   652→              </p>
+   653→            </div>
+   654→            <button
+   655→              onClick={() => setSupportOpen(true)}
+   656→              className="btn-tactile bg-primary text-primary-foreground px-5 py-2.5 rounded-full font-semibold flex items-center gap-2 shadow-soft hover:opacity-90"
+   657→            >
+   658→              <Heart className="size-4" fill="currentColor" />
+   659→              Become a Supporter
+   660→            </button>
+   661→          </div>
+   662→        </div>
+   663→      )}
+   664→
+   665→      {/* Footer note — editorial colophon */}
+   666→      <footer className="pt-8 pb-2">
+   667→        <EditorialDivider ornament="diamond" />
+   668→        <div className="text-center">
+   669→          <p className="font-handwritten text-base text-muted-foreground">
+   670→            made with 💜 for KTU students
+   671→          </p>
+   672→          <p className="text-[11px] text-muted-foreground/70 mt-1 tracking-wide">
+   673→            {UNIVERSITY_NAME} · v{APP_VERSION}
+   674→          </p>
+   675→        </div>
+   676→      </footer>
+   677→    </div>
+   678→  );
+   679→}
+   680→
+   681→function SectionHeader({
+   682→  title,
+   683→  subtitle,
+   684→  onSeeAll,
+   685→  compact,
+   686→  accent,
+   687→}: {
+   688→  title: string;
+   689→  subtitle?: string;
+   690→  onSeeAll?: () => void;
+   691→  compact?: boolean;
+   692→  accent?: string;
+   693→}) {
+   694→  return (
+   695→    <div className={`flex items-end justify-between gap-4 ${compact ? "mb-3" : "mb-5"}`}>
+   696→      <div className="flex items-start gap-3">
+   697→        {/* Vertical accent bar — feels like a margin note rule */}
+   698→        <div className="w-1 self-stretch rounded-full bg-gradient-to-b from-primary/50 via-primary/25 to-transparent mt-1" />
+   699→        <div>
+   700→          <div className="flex items-baseline gap-2.5 flex-wrap">
+   701→            <h2 className={`font-serif-display tracking-tight ${compact ? "text-lg" : "text-2xl"}`}>
+   702→              {title}
+   703→            </h2>
+   704→            {accent && (
+   705→              <HandwrittenText as="span" color="amber" className="text-lg rotate-[-3deg]">
+   706→                {accent}
+   707→              </HandwrittenText>
+   708→            )}
+   709→          </div>
+   710→          {subtitle && (
+   711→            <p className="text-xs text-muted-foreground mt-0.5 italic">{subtitle}</p>
+   712→          )}
+   713→        </div>
+   714→      </div>
+   715→      {onSeeAll && (
+   716→        <button
+   717→          onClick={onSeeAll}
+   718→          className="btn-tactile text-xs text-primary hover:underline font-medium flex items-center gap-1 shrink-0 px-2 py-1 rounded-full hover:bg-primary/5"
+   719→        >
+   720→          See all <ArrowRight className="size-3" />
+   721→        </button>
+   722→      )}
+   723→    </div>
+   724→  );
+   725→}
+   726→
+   727→/* ====================================================================== */
+   728→/* Upcoming Exams Widget — shows next 3 exams from active timetable        */
+   729→/* ====================================================================== */
+   730→
+   731→function UpcomingExamsWidget() {
+   732→  const profile = useAuthStore((s) => s.profile);
+   733→  const set = useNavStore((s) => s.set);
+   734→
+   735→  const { data: timetable } = useQuery({
+   736→    queryKey: ["timetable", profile?.branchCode, profile?.semester],
+   737→    queryFn: () => getActiveTimetable(profile?.semester, profile?.branchCode),
+   738→    enabled: !!profile,
+   739→    staleTime: 5 * 60 * 1000,
+   740→  });
+   741→
+   742→  if (!profile || !timetable) return null;
+   743→
+   744→  const now = Date.now();
+   745→  const upcoming = timetable.entries
+   746→    .filter((e) => new Date(e.date).getTime() >= now - 86400000)
+   747→    .slice(0, 3);
+   748→
+   749→  if (upcoming.length === 0) return null;
+   750→
+   751→  return (
+   752→    <GlassCard variant="kraft" className="p-5 relative">
+   753→      <div className="flex items-center justify-between mb-3">
+   754→        <div className="flex items-center gap-2">
+   755→          <GraduationCap className="size-4 text-primary" />
+   756→          <h3 className="font-serif-display text-base">Upcoming Exams</h3>
+   757→        </div>
+   758→        <button
+   759→          onClick={() => set("calendar" as NavKey)}
+   760→          className="text-xs text-primary hover:underline font-medium"
+   761→        >
+   762→          View all →
+   763→        </button>
+   764→      </div>
+   765→      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+   766→        {upcoming.map((e) => {
+   767→          const examDate = new Date(e.date);
+   768→          const daysLeft = Math.ceil((examDate.getTime() - now) / (1000 * 60 * 60 * 24));
+   769→          const isToday = daysLeft === 0;
+   770→          return (
+   771→            <div key={e.id} className="p-3 rounded-xl bg-foreground/[0.03] border border-foreground/10">
+   772→              <div className="flex items-center justify-between mb-1.5">
+   773→                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/60">
+   774→                  {examDate.toLocaleString("en-IN", { month: "short" })} {examDate.getDate()}
+   775→                </span>
+   776→                <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-foreground/5">
+   777→                  {e.session}
+   778→                </span>
+   779→              </div>
+   780→              <p className="font-serif-display text-sm truncate">{e.subjectName}</p>
+   781→              <p className="text-xs text-muted-foreground font-mono">{e.subjectCode}</p>
+   782→              {isToday ? (
+   783→                <p className="text-xs text-rose-600 dark:text-rose-400 font-bold mt-1">Today!</p>
+   784→              ) : (
+   785→                <p className="text-xs text-primary font-bold mt-1">{daysLeft} days left</p>
+   786→              )}
+   787→            </div>
+   788→          );
+   789→        })}
+   790→      </div>
+   791→    </GlassCard>
+   792→  );
+   793→}
+   794→

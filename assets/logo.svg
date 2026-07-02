@@ -1,0 +1,18 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#818CF8" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)" />
+  <!-- Book / Academic Cap abstract shape -->
+  <path d="M512 280 L200 420 L512 560 L824 420 Z" fill="url(#accent)" />
+  <path d="M280 490 L280 660 L512 800 L744 660 L744 490 L512 630 Z" fill="#E2E8F0" opacity="0.9" />
+  <!-- "1" embedded in the design or just keeping it abstract. Let's add KTU ONE text at the bottom -->
+  <text x="512" y="920" font-family="sans-serif" font-size="80" font-weight="bold" fill="#94A3B8" text-anchor="middle" letter-spacing="10">KTU ONE</text>
+</svg>

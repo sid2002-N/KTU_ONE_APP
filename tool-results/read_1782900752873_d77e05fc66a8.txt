@@ -1,0 +1,1191 @@
+     1→@import "tailwindcss";
+     2→@import "tw-animate-css";
+     3→
+     4→@custom-variant dark (&:is(.dark *));
+     5→
+     6→/* ==========================================================================
+     7→   KTU ONE — VISUAL LANGUAGE v3
+     8→   "Student Notebook + Editorial Sketchbook"
+     9→   - Paper-textured cards as the DEFAULT surface (no more glass as default)
+    10→   - Hand-drawn borders via offset double-stroke + irregular radius
+    11→   - Mixed typography: serif display + sans body + handwritten accents
+    12→   - Magazine-style composition: drop caps, editorial rules, ornaments
+    13→   - Stationery-card variants: index card, kraft, lined page, magazine
+    14→   - Warm cream / plum / coral / amber palette — never corporate
+    15→   ========================================================================== */
+    16→
+    17→@theme inline {
+    18→  --color-background: var(--background);
+    19→  --color-foreground: var(--foreground);
+    20→  --font-sans: var(--font-geist-sans);
+    21→  --font-mono: var(--font-geist-mono);
+    22→  --font-display: var(--font-display-sans);
+    23→  --font-hand: var(--font-caveat);
+    24→  --font-serif: var(--font-lora);
+    25→
+    26→  --color-sidebar-ring: var(--sidebar-ring);
+    27→  --color-sidebar-border: var(--sidebar-border);
+    28→  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    29→  --color-sidebar-accent: var(--sidebar-accent);
+    30→  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    31→  --color-sidebar-primary: var(--sidebar-primary);
+    32→  --color-sidebar-foreground: var(--sidebar-foreground);
+    33→  --color-sidebar: var(--sidebar);
+    34→
+    35→  --color-chart-5: var(--chart-5);
+    36→  --color-chart-4: var(--chart-4);
+    37→  --color-chart-3: var(--chart-3);
+    38→  --color-chart-2: var(--chart-2);
+    39→  --color-chart-1: var(--chart-1);
+    40→
+    41→  --color-ring: var(--ring);
+    42→  --color-input: var(--input);
+    43→  --color-border: var(--border);
+    44→  --color-destructive: var(--destructive);
+    45→  --color-destructive-foreground: var(--destructive-foreground);
+    46→  --color-success: var(--success);
+    47→  --color-success-foreground: var(--success-foreground);
+    48→  --color-warning: var(--warning);
+    49→  --color-warning-foreground: var(--warning-foreground);
+    50→  --color-info: var(--info);
+    51→  --color-info-foreground: var(--info-foreground);
+    52→
+    53→  --color-accent-foreground: var(--accent-foreground);
+    54→  --color-accent: var(--accent);
+    55→  --color-muted-foreground: var(--muted-foreground);
+    56→  --color-muted: var(--muted);
+    57→  --color-secondary-foreground: var(--secondary-foreground);
+    58→  --color-secondary: var(--secondary);
+    59→  --color-primary-foreground: var(--primary-foreground);
+    60→  --color-primary: var(--primary);
+    61→  --color-popover-foreground: var(--popover-foreground);
+    62→  --color-popover: var(--popover);
+    63→  --color-card-foreground: var(--card-foreground);
+    64→  --color-card: var(--card);
+    65→
+    66→  --color-glass: var(--glass);
+    67→  --color-glass-border: var(--glass-border);
+    68→  --color-glass-highlight: var(--glass-highlight);
+    69→  --color-glass-tinted: var(--glass-tinted);
+    70→  --color-glass-warm: var(--glass-warm);
+    71→
+    72→  --color-gradient-1: var(--gradient-1);
+    73→  --color-gradient-2: var(--gradient-2);
+    74→  --color-gradient-3: var(--gradient-3);
+    75→  --color-gradient-4: var(--gradient-4);
+    76→
+    77→  --color-rose: var(--rose);
+    78→  --color-coral: var(--coral);
+    79→  --color-peach: var(--peach);
+    80→  --color-lavender: var(--lavender);
+    81→  --color-olive: var(--olive);
+    82→  --color-mint: var(--mint);
+    83→
+    84→  --radius-sm: calc(var(--radius) - 4px);
+    85→  --radius-md: calc(var(--radius) - 2px);
+    86→  --radius-lg: var(--radius);
+    87→  --radius-xl: calc(var(--radius) + 4px);
+    88→  --radius-2xl: calc(var(--radius) + 10px);
+    89→  --radius-3xl: calc(var(--radius) + 20px);
+    90→
+    91→  --shadow-soft: var(--shadow-soft);
+    92→  --shadow-elevated: var(--shadow-elevated);
+    93→  --shadow-floating: var(--shadow-floating);
+    94→  --shadow-glass: var(--shadow-glass);
+    95→  --shadow-paper: var(--shadow-paper);
+    96→}
+    97→
+    98→:root {
+    99→  --radius: 1.125rem;
+   100→
+   101→  /* Surfaces — warmer paper tones (more cream/beige) */
+   102→  --background: oklch(0.978 0.014 78);              /* warm cream paper */
+   103→  --foreground: oklch(0.25 0.018 50);               /* warm dark brown ink (not plum) */
+   104→  --card: oklch(0.992 0.008 78);                    /* warm white card */
+   105→  --card-foreground: oklch(0.25 0.018 50);
+   106→  --popover: oklch(0.992 0.008 78);
+   107→  --popover-foreground: oklch(0.25 0.018 50);
+   108→
+   109→  /* Primary — desaturated plum (chroma 0.18 → 0.12, ~33% reduction) */
+   110→  --primary: oklch(0.50 0.12 340);
+   111→  --primary-foreground: oklch(0.99 0.008 78);
+   112→
+   113→  /* Secondary — warm cream */
+   114→  --secondary: oklch(0.94 0.018 75);
+   115→  --secondary-foreground: oklch(0.32 0.025 50);
+   116→
+   117→  /* Muted — warm pebble */
+   118→  --muted: oklch(0.94 0.012 75);
+   119→  --muted-foreground: oklch(0.50 0.018 65);
+   120→
+   121→  /* Accent — Warm Amber (kept warm, slightly more saturated) */
+   122→  --accent: oklch(0.91 0.055 70);
+   123→  --accent-foreground: oklch(0.35 0.09 65);
+   124→
+   125→  /* Status (desaturated, never neon) */
+   126→  --destructive: oklch(0.55 0.13 25);               /* reduced from 0.18 → 0.13 */
+   127→  --destructive-foreground: oklch(0.99 0.008 78);
+   128→  --success: oklch(0.58 0.09 155);
+   129→  --success-foreground: oklch(0.99 0.008 78);
+   130→  --warning: oklch(0.74 0.11 70);
+   131→  --warning-foreground: oklch(0.28 0.04 65);
+   132→  --info: oklch(0.58 0.08 220);
+   133→  --info-foreground: oklch(0.99 0.008 78);
+   134→
+   135→  /* Lines — warm translucent */
+   136→  --border: oklch(0.82 0.018 65 / 0.60);
+   137→  --input: oklch(0.82 0.018 65 / 0.60);
+   138→  --ring: oklch(0.50 0.12 340);
+   139→
+   140→  /* Charts — desaturated */
+   141→  --chart-1: oklch(0.52 0.12 340);                    /* plum (reduced) */
+   142→  --chart-2: oklch(0.68 0.13 70);                     /* amber */
+   143→  --chart-3: oklch(0.62 0.10 155);                    /* mint */
+   144→  --chart-4: oklch(0.58 0.12 25);                     /* coral (reduced) */
+   145→  --chart-5: oklch(0.58 0.08 280);                    /* lavender (reduced) */
+   146→
+   147→  /* Glass — warmer, frosted, low transparency */
+   148→  --glass: oklch(0.99 0.008 78 / 0.55);
+   149→  --glass-border: oklch(1 0 0 / 0.45);
+   150→  --glass-highlight: oklch(1 0 0 / 0.7);
+   151→  --glass-tinted: oklch(0.95 0.018 75 / 0.6);
+   152→  --glass-warm: oklch(0.96 0.025 70 / 0.65);
+   153→
+   154→  /* Signature Gradients — desaturated */
+   155→  --gradient-1: oklch(0.52 0.12 340);                 /* plum (reduced) */
+   156→  --gradient-2: oklch(0.62 0.12 20);                  /* coral (reduced) */
+   157→  --gradient-3: oklch(0.68 0.13 70);                  /* amber */
+   158→  --gradient-4: oklch(0.58 0.08 280);                 /* lavender (reduced) */
+   159→
+   160→  /* Editorial palette — pinks/corals reduced ~30% */
+   161→  --rose: oklch(0.62 0.09 15);                        /* chroma 0.13 → 0.09 */
+   162→  --coral: oklch(0.65 0.10 25);                       /* chroma 0.15 → 0.10 */
+   163→  --peach: oklch(0.85 0.06 60);
+   164→  --lavender: oklch(0.66 0.055 300);                  /* chroma 0.08 → 0.055 */
+   165→  --olive: oklch(0.60 0.07 110);
+   166→  --mint: oklch(0.68 0.07 155);
+   167→
+   168→  /* Sidebar */
+   169→  --sidebar: oklch(0.96 0.012 75);
+   170→  --sidebar-foreground: oklch(0.25 0.018 50);
+   171→  --sidebar-primary: oklch(0.50 0.12 340);
+   172→  --sidebar-primary-foreground: oklch(0.99 0.008 78);
+   173→  --sidebar-accent: oklch(0.92 0.018 75);
+   174→  --sidebar-accent-foreground: oklch(0.32 0.025 50);
+   175→  --sidebar-border: oklch(0.82 0.018 65 / 0.5);
+   176→  --sidebar-ring: oklch(0.50 0.12 340);
+   177→
+   178→  /* Shadows — Apple-like, large blur, very low opacity, warm brown-tinted */
+   179→  --shadow-soft:
+   180→    0 1px 2px -1px oklch(0.30 0.04 50 / 0.05),
+   181→    0 4px 12px -4px oklch(0.30 0.04 50 / 0.07),
+   182→    0 8px 24px -8px oklch(0.30 0.04 50 / 0.05);
+   183→  --shadow-elevated:
+   184→    0 2px 4px -2px oklch(0.30 0.04 50 / 0.06),
+   185→    0 12px 28px -8px oklch(0.30 0.04 50 / 0.11),
+   186→    0 24px 56px -16px oklch(0.30 0.04 50 / 0.09);
+   187→  --shadow-floating:
+   188→    0 4px 8px -4px oklch(0.30 0.04 50 / 0.09),
+   189→    0 20px 48px -12px oklch(0.30 0.04 50 / 0.17),
+   190→    0 40px 96px -24px oklch(0.30 0.04 50 / 0.13);
+   191→  --shadow-glass:
+   192→    0 2px 8px -2px oklch(0.30 0.04 50 / 0.07),
+   193→    inset 0 1px 0 0 oklch(1 0 0 / 0.5);
+   194→  --shadow-paper:
+   195→    0 1px 0 oklch(1 0 0 / 0.8) inset,
+   196→    0 1px 2px oklch(0.30 0.04 50 / 0.05),
+   197→    0 4px 12px -4px oklch(0.30 0.04 50 / 0.06);
+   198→}
+   199→
+   200→.dark {
+   201→  --background: oklch(0.19 0.012 50);                 /* warm dark brown ink */
+   202→  --foreground: oklch(0.95 0.008 78);
+   203→  --card: oklch(0.24 0.014 50);
+   204→  --card-foreground: oklch(0.95 0.008 78);
+   205→  --popover: oklch(0.24 0.014 50);
+   206→  --popover-foreground: oklch(0.95 0.008 78);
+   207→
+   208→  --primary: oklch(0.72 0.11 340);                    /* reduced from 0.16 */
+   209→  --primary-foreground: oklch(0.19 0.012 50);
+   210→
+   211→  --secondary: oklch(0.28 0.018 60);
+   212→  --secondary-foreground: oklch(0.95 0.008 78);
+   213→
+   214→  --muted: oklch(0.26 0.014 60);
+   215→  --muted-foreground: oklch(0.70 0.014 65);
+   216→
+   217→  --accent: oklch(0.36 0.05 70);
+   218→  --accent-foreground: oklch(0.90 0.07 70);
+   219→
+   220→  --destructive: oklch(0.70 0.13 25);                 /* reduced from 0.18 */
+   221→  --destructive-foreground: oklch(0.99 0.008 78);
+   222→  --success: oklch(0.72 0.10 155);
+   223→  --success-foreground: oklch(0.19 0.012 50);
+   224→  --warning: oklch(0.78 0.11 70);
+   225→  --warning-foreground: oklch(0.22 0.04 70);
+   226→  --info: oklch(0.70 0.08 220);
+   227→  --info-foreground: oklch(0.19 0.012 50);
+   228→
+   229→  --border: oklch(1 0 0 / 9%);
+   230→  --input: oklch(1 0 0 / 13%);
+   231→  --ring: oklch(0.72 0.11 340);
+   232→
+   233→  --chart-1: oklch(0.72 0.11 340);
+   234→  --chart-2: oklch(0.78 0.12 70);
+   235→  --chart-3: oklch(0.72 0.10 155);
+   236→  --chart-4: oklch(0.72 0.12 25);
+   237→  --chart-5: oklch(0.70 0.08 280);
+   238→
+   239→  --glass: oklch(0.24 0.014 50 / 0.5);
+   240→  --glass-border: oklch(1 0 0 / 0.08);
+   241→  --glass-highlight: oklch(1 0 0 / 0.12);
+   242→  --glass-tinted: oklch(0.28 0.018 60 / 0.55);
+   243→  --glass-warm: oklch(0.30 0.022 65 / 0.55);
+   244→
+   245→  --gradient-1: oklch(0.72 0.11 340);
+   246→  --gradient-2: oklch(0.72 0.12 20);
+   247→  --gradient-3: oklch(0.78 0.12 70);
+   248→  --gradient-4: oklch(0.70 0.08 280);
+   249→
+   250→  --rose: oklch(0.72 0.09 15);
+   251→  --coral: oklch(0.74 0.10 25);
+   252→  --peach: oklch(0.45 0.05 60);
+   253→  --lavender: oklch(0.72 0.06 300);
+   254→  --olive: oklch(0.68 0.07 110);
+   255→  --mint: oklch(0.72 0.08 155);
+   256→
+   257→  --sidebar: oklch(0.21 0.012 50);
+   258→  --sidebar-foreground: oklch(0.95 0.008 78);
+   259→  --sidebar-primary: oklch(0.72 0.11 340);
+   260→  --sidebar-primary-foreground: oklch(0.99 0.008 78);
+   261→  --sidebar-accent: oklch(0.28 0.018 60);
+   262→  --sidebar-accent-foreground: oklch(0.95 0.008 78);
+   263→  --sidebar-border: oklch(1 0 0 / 9%);
+   264→  --sidebar-ring: oklch(0.72 0.11 340);
+   265→
+   266→  --shadow-soft:
+   267→    0 1px 2px -1px oklch(0 0 0 / 0.20),
+   268→    0 4px 12px -4px oklch(0 0 0 / 0.28),
+   269→    0 8px 24px -8px oklch(0 0 0 / 0.20);
+   270→  --shadow-elevated:
+   271→    0 2px 4px -2px oklch(0 0 0 / 0.32),
+   272→    0 12px 28px -8px oklch(0 0 0 / 0.48),
+   273→    0 24px 56px -16px oklch(0 0 0 / 0.36);
+   274→  --shadow-floating:
+   275→    0 4px 8px -4px oklch(0 0 0 / 0.40),
+   276→    0 20px 48px -12px oklch(0 0 0 / 0.56),
+   277→    0 40px 96px -24px oklch(0 0 0 / 0.40);
+   278→  --shadow-glass:
+   279→    0 2px 8px -2px oklch(0 0 0 / 0.32),
+   280→    inset 0 1px 0 0 oklch(1 0 0 / 0.06);
+   281→  --shadow-paper:
+   282→    0 1px 0 oklch(1 0 0 / 0.04) inset,
+   283→    0 1px 2px oklch(0 0 0 / 0.20),
+   284→    0 4px 12px -4px oklch(0 0 0 / 0.24);
+   285→}
+   286→
+   287→@layer base {
+   288→  * {
+   289→    @apply border-border outline-ring/50;
+   290→  }
+   291→  html, body {
+   292→    @apply bg-background text-foreground;
+   293→    -webkit-font-smoothing: antialiased;
+   294→    text-rendering: optimizeLegibility;
+   295→  }
+   296→  body {
+   297→    font-feature-settings: "ss01", "cv01", "cv02";
+   298→    position: relative;
+   299→    min-height: 100vh;
+   300→  }
+   301→  /* Paper grain — SVG noise, almost invisible */
+   302→  body::before {
+   303→    content: "";
+   304→    position: fixed;
+   305→    inset: 0;
+   306→    pointer-events: none;
+   307→    z-index: 0;
+   308→    opacity: 0.025;
+   309→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.15 0 0 0 0 0.25 0 0 0 1 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+   310→    mix-blend-mode: multiply;
+   311→  }
+   312→  .dark body::before {
+   313→    opacity: 0.04;
+   314→    mix-blend-mode: screen;
+   315→  }
+   316→
+   317→  /* Custom scrollbar — warmer, softer */
+   318→  ::-webkit-scrollbar { width: 8px; height: 8px; }
+   319→  ::-webkit-scrollbar-track { background: transparent; }
+   320→  ::-webkit-scrollbar-thumb {
+   321→    background: oklch(0.50 0.02 340 / 0.20);
+   322→    border-radius: 9999px;
+   323→  }
+   324→  ::-webkit-scrollbar-thumb:hover {
+   325→    background: oklch(0.50 0.02 340 / 0.35);
+   326→  }
+   327→}
+   328→
+   329→@layer utilities {
+   330→  /* ========== GLASSMORPHISM — softer, warmer ========== */
+   331→  .glass {
+   332→    background: var(--glass);
+   333→    backdrop-filter: blur(14px) saturate(140%);
+   334→    -webkit-backdrop-filter: blur(14px) saturate(140%);
+   335→    border: 1px solid var(--glass-border);
+   336→    box-shadow: var(--shadow-glass);
+   337→  }
+   338→  .glass-strong {
+   339→    background: var(--glass-highlight);
+   340→    backdrop-filter: blur(18px) saturate(160%);
+   341→    -webkit-backdrop-filter: blur(18px) saturate(160%);
+   342→    border: 1px solid var(--glass-border);
+   343→    box-shadow: var(--shadow-glass);
+   344→  }
+   345→  .glass-tinted {
+   346→    background: var(--glass-tinted);
+   347→    backdrop-filter: blur(16px) saturate(150%);
+   348→    -webkit-backdrop-filter: blur(16px) saturate(150%);
+   349→    border: 1px solid var(--glass-border);
+   350→    box-shadow: var(--shadow-glass);
+   351→  }
+   352→  .glass-warm {
+   353→    background: var(--glass-warm);
+   354→    backdrop-filter: blur(16px) saturate(150%);
+   355→    -webkit-backdrop-filter: blur(16px) saturate(150%);
+   356→    border: 1px solid var(--glass-border);
+   357→    box-shadow: var(--shadow-glass);
+   358→  }
+   359→  /* Warm white card — for editorial / paper feel */
+   360→  .card-warm {
+   361→    background: var(--card);
+   362→    border: 1px solid var(--border);
+   363→    box-shadow: var(--shadow-paper);
+   364→  }
+   365→
+   366→  /* ========== SIGNATURE GRADIENTS ========== */
+   367→  .bg-gradient-plum {
+   368→    background-image: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-2) 100%);
+   369→  }
+   370→  .bg-gradient-warm {
+   371→    background-image: linear-gradient(135deg, var(--gradient-2) 0%, var(--gradient-3) 100%);
+   372→  }
+   373→  .bg-gradient-tri {
+   374→    background-image: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-2) 50%, var(--gradient-3) 100%);
+   375→  }
+   376→  .bg-gradient-lavender {
+   377→    background-image: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-4) 100%);
+   378→  }
+   379→  .text-gradient-plum {
+   380→    background-image: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+   381→    -webkit-background-clip: text;
+   382→    background-clip: text;
+   383→    color: transparent;
+   384→  }
+   385→
+   386→  /* ========== AMBIENT BACKGROUND BLOBS ========== */
+   387→  .ambient-blobs {
+   388→    position: fixed;
+   389→    inset: 0;
+   390→    z-index: 0;
+   391→    pointer-events: none;
+   392→    overflow: hidden;
+   393→  }
+   394→  .ambient-blobs::before,
+   395→  .ambient-blobs::after,
+   396→  .ambient-blob-3 {
+   397→    content: "";
+   398→    position: absolute;
+   399→    border-radius: 50%;
+   400→    filter: blur(80px);
+   401→    opacity: 0.35;
+   402→  }
+   403→  .ambient-blobs::before {
+   404→    width: 520px; height: 520px;
+   405→    top: -180px; left: -120px;
+   406→    background: radial-gradient(circle, var(--peach), transparent 70%);
+   407→  }
+   408→  .ambient-blobs::after {
+   409→    width: 600px; height: 600px;
+   410→    top: -100px; right: -200px;
+   411→    background: radial-gradient(circle, var(--lavender), transparent 70%);
+   412→    opacity: 0.28;
+   413→  }
+   414→  .ambient-blob-3 {
+   415→    width: 480px; height: 480px;
+   416→    bottom: -200px; left: 30%;
+   417→    background: radial-gradient(circle, var(--peach), transparent 70%);
+   418→    opacity: 0.22;
+   419→  }
+   420→  .dark .ambient-blobs::before { opacity: 0.18; }
+   421→  .dark .ambient-blobs::after { opacity: 0.15; }
+   422→  .dark .ambient-blob-3 { opacity: 0.12; }
+   423→
+   424→  /* ========== SHADOWS ========== */
+   425→  .shadow-soft { box-shadow: var(--shadow-soft); }
+   426→  .shadow-elevated { box-shadow: var(--shadow-elevated); }
+   427→  .shadow-floating { box-shadow: var(--shadow-floating); }
+   428→  .shadow-glass { box-shadow: var(--shadow-glass); }
+   429→  .shadow-paper { box-shadow: var(--shadow-paper); }
+   430→
+   431→  /* ========== GRID / DOTS ========== */
+   432→  .bg-grid {
+   433→    background-image:
+   434→      linear-gradient(to right, oklch(0.50 0.02 320 / 0.04) 1px, transparent 1px),
+   435→      linear-gradient(to bottom, oklch(0.50 0.02 320 / 0.04) 1px, transparent 1px);
+   436→    background-size: 32px 32px;
+   437→  }
+   438→  .bg-dots {
+   439→    background-image: radial-gradient(oklch(0.50 0.02 320 / 0.12) 1px, transparent 1px);
+   440→    background-size: 18px 18px;
+   441→  }
+   442→
+   443→  /* ========== SKETCH UNDERLINE — hand-drawn feel ========== */
+   444→  .sketch-underline {
+   445→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8' preserveAspectRatio='none'><path d='M2 5 Q 30 1 60 4 T 118 5' stroke='oklch(0.65 0.18 20)' stroke-width='2.2' fill='none' stroke-linecap='round'/></svg>");
+   446→    background-repeat: no-repeat;
+   447→    background-position: 0 100%;
+   448→    background-size: 100% 0.32em;
+   449→    padding-bottom: 0.18em;
+   450→  }
+   451→  .sketch-circle {
+   452→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' preserveAspectRatio='none'><path d='M10 30 Q 10 8 60 8 Q 110 8 110 30 Q 110 52 60 52 Q 10 52 10 30 Z' stroke='oklch(0.65 0.18 20)' stroke-width='2' fill='none' stroke-linecap='round' stroke-dasharray='2 3'/></svg>");
+   453→    background-repeat: no-repeat;
+   454→    background-position: center;
+   455→    background-size: 100% 100%;
+   456→  }
+   457→
+   458→  /* ========== HANDWRITTEN FONT ========== */
+   459→  .font-hand {
+   460→    font-family: var(--font-caveat), "Comic Sans MS", cursive;
+   461→    font-weight: 600;
+   462→    letter-spacing: 0.01em;
+   463→  }
+   464→
+   465→  /* ========== FLOATING ANIMATION — cards gently float ========== */
+   466→  @keyframes float-subtle {
+   467→    0%, 100% { transform: translateY(0); }
+   468→    50% { transform: translateY(-3px); }
+   469→  }
+   470→  .float-subtle {
+   471→    animation: float-subtle 6s ease-in-out infinite;
+   472→  }
+   473→  .float-subtle-slow {
+   474→    animation: float-subtle 9s ease-in-out infinite;
+   475→  }
+   476→
+   477→  /* ========== TACTILE BUTTONS ========== */
+   478→  .btn-tactile {
+   479→    transition:
+   480→      transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+   481→      box-shadow 0.18s ease,
+   482→      opacity 0.18s ease;
+   483→  }
+   484→  .btn-tactile:hover {
+   485→    transform: translateY(-1px);
+   486→  }
+   487→  .btn-tactile:active {
+   488→    transform: translateY(0.5px) scale(0.985);
+   489→  }
+   490→
+   491→  /* ========== NO TAP HIGHLIGHT ========== */
+   492→  .no-tap-highlight { -webkit-tap-highlight-color: transparent; }
+   493→
+   494→  /* ========== SAFE AREA ========== */
+   495→  .safe-top { padding-top: env(safe-area-inset-top); }
+   496→  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+   497→
+   498→  /* ========== REDUCED MOTION ========== */
+   499→  @media (prefers-reduced-motion: reduce) {
+   500→    .motion-reduce, .float-subtle, .float-subtle-slow {
+   501→      animation: none !important;
+   502→      transition: none !important;
+   503→    }
+   504→  }
+   505→
+   506→  /* ========== PARTICLE DOT — for hero ========== */
+   507→  .particle {
+   508→    position: absolute;
+   509→    border-radius: 50%;
+   510→    pointer-events: none;
+   511→  }
+   512→
+   513→  /* ========== NAVBAR GLASS — opaque enough to prevent text bleed-through ========== */
+   514→  .navbar-glass {
+   515→    background: oklch(0.978 0.014 78 / 0.92);
+   516→    backdrop-filter: blur(16px) saturate(150%);
+   517→    -webkit-backdrop-filter: blur(16px) saturate(150%);
+   518→  }
+   519→  .dark .navbar-glass {
+   520→    background: oklch(0.19 0.012 50 / 0.92);
+   521→  }
+   522→
+   523→  /* ========== MOBILE TOUCH OPTIMIZATION ========== */
+   524→  button, [role="button"], a {
+   525→    touch-action: manipulation;
+   526→  }
+   527→  * {
+   528→    -webkit-overflow-scrolling: touch;
+   529→  }
+   530→  button {
+   531→    -webkit-user-select: none;
+   532→    user-select: none;
+   533→  }
+   534→  input, textarea, [contenteditable] {
+   535→    -webkit-user-select: text;
+   536→    user-select: text;
+   537→  }
+   538→
+   539→  /* ========== SKETCH BORDERS — hand-drawn outlines ========== */
+   540→  /* Wavy imperfect border using SVG mask */
+   541→  .sketch-border {
+   542→    position: relative;
+   543→    border: 1.5px solid var(--border);
+   544→    border-radius: var(--radius-lg);
+   545→    box-shadow: var(--shadow-paper);
+   546→  }
+   547→  .sketch-border::after {
+   548→    content: "";
+   549→    position: absolute;
+   550→    inset: -1.5px;
+   551→    border-radius: inherit;
+   552→    pointer-events: none;
+   553→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><path d='M2 8 Q 5 4 10 6 T 22 7 T 34 6 T 46 7' stroke='oklch(0.55 0.18 340)' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>");
+   554→    background-repeat: repeat-x;
+   555→    background-position: 0 0;
+   556→    background-size: 50px 8px;
+   557→    opacity: 0.25;
+   558→  }
+   559→
+   560→  /* Double-stroke sketch border */
+   561→  .sketch-double {
+   562→    border: 1.5px solid var(--border);
+   563→    box-shadow:
+   564→      0 0 0 1.5px transparent,
+   565→      inset 0 0 0 4px transparent,
+   566→      4px 4px 0 0 oklch(0.55 0.18 340 / 0.08),
+   567→      var(--shadow-paper);
+   568→  }
+   569→
+   570→  /* Pencil-style edge — subtle dashed warm outline */
+   571→  .sketch-pencil {
+   572→    border: 1.5px dashed oklch(0.55 0.18 340 / 0.35);
+   573→    box-shadow: var(--shadow-paper);
+   574→  }
+   575→
+   576→  /* ========== NOTEBOOK RULED LINES — for hero / sticky notes ========== */
+   577→  .notebook-ruled {
+   578→    background-image:
+   579→      linear-gradient(to bottom, transparent 27px, oklch(0.55 0.18 340 / 0.08) 27px, oklch(0.55 0.18 340 / 0.08) 28px, transparent 28px);
+   580→    background-size: 100% 28px;
+   581→    background-position: 0 4px;
+   582→  }
+   583→  /* Margin red line on left — like a notebook */
+   584→  .notebook-margin {
+   585→    border-left: 1.5px solid oklch(0.62 0.18 25 / 0.25);
+   586→    padding-left: 1rem;
+   587→  }
+   588→
+   589→  /* ========== PAGE FOLD — corner of a card looks folded ========== */
+   590→  .page-fold {
+   591→    position: relative;
+   592→  }
+   593→  .page-fold::before {
+   594→    content: "";
+   595→    position: absolute;
+   596→    top: 0;
+   597→    right: 0;
+   598→    width: 28px;
+   599→    height: 28px;
+   600→    background:
+   601→      linear-gradient(225deg, transparent 50%, oklch(0.88 0.01 60 / 0.7) 50%, oklch(0.85 0.015 60) 100%);
+   602→    border-bottom-left-radius: 6px;
+   603→    box-shadow: -2px 2px 4px -2px oklch(0.30 0.05 340 / 0.15);
+   604→    pointer-events: none;
+   605→  }
+   606→  .dark .page-fold::before {
+   607→    background:
+   608→      linear-gradient(225deg, transparent 50%, oklch(0.30 0.015 290 / 0.8) 50%, oklch(0.26 0.012 290) 100%);
+   609→  }
+   610→
+   611→  /* ========== STICKY NOTE — paper-textured yellow tint ========== */
+   612→  .sticky-note {
+   613→    background:
+   614→      linear-gradient(180deg, oklch(0.95 0.05 90) 0%, oklch(0.92 0.06 90) 100%);
+   615→    box-shadow:
+   616→      0 1px 0 oklch(0.70 0.10 80 / 0.4) inset,
+   617→      0 6px 16px -4px oklch(0.30 0.05 340 / 0.18),
+   618→      0 2px 4px -2px oklch(0.30 0.05 340 / 0.10);
+   619→    border: 1px solid oklch(0.85 0.06 80 / 0.4);
+   620→    position: relative;
+   621→  }
+   622→  .sticky-note::after {
+   623→    content: "";
+   624→    position: absolute;
+   625→    inset: 0;
+   626→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2'/></filter><rect width='100' height='100' filter='url(%23n)' opacity='0.08'/></svg>");
+   627→    pointer-events: none;
+   628→    border-radius: inherit;
+   629→    mix-blend-mode: multiply;
+   630→  }
+   631→
+   632→  /* ========== TAPE STRIP — washi tape look ========== */
+   633→  .tape-strip {
+   634→    position: absolute;
+   635→    width: 80px;
+   636→    height: 22px;
+   637→    background:
+   638→      linear-gradient(135deg, oklch(0.88 0.08 70 / 0.7) 0%, oklch(0.85 0.06 75 / 0.7) 100%);
+   639→    box-shadow: 0 2px 6px -2px oklch(0.30 0.05 340 / 0.18);
+   640→    border-radius: 1px;
+   641→    transform: rotate(-3deg);
+   642→  }
+   643→
+   644→  /* ========== PAPER CLIP — metallic clip on card edge ========== */
+   645→  .paper-clip {
+   646→    position: absolute;
+   647→    top: -10px;
+   648→    right: 24px;
+   649→    width: 18px;
+   650→    height: 38px;
+   651→    border: 2px solid oklch(0.55 0.10 220 / 0.55);
+   652→    border-radius: 9px 9px 0 0;
+   653→    border-bottom: none;
+   654→    pointer-events: none;
+   655→  }
+   656→  .paper-clip::after {
+   657→    content: "";
+   658→    position: absolute;
+   659→    top: 12px;
+   660→    left: 50%;
+   661→    transform: translateX(-50%);
+   662→    width: 8px;
+   663→    height: 22px;
+   664→    border: 2px solid oklch(0.55 0.10 220 / 0.55);
+   665→    border-top: none;
+   666→    border-radius: 0 0 4px 4px;
+   667→  }
+   668→
+   669→  /* ========== TACTILE BUTTON — premium tactile feel ========== */
+   670→  .btn-tactile-warm {
+   671→    background:
+   672→      linear-gradient(180deg, oklch(1 0 0 / 0.5) 0%, oklch(1 0 0 / 0) 60%),
+   673→      var(--primary);
+   674→    background-blend-mode: overlay;
+   675→    box-shadow:
+   676→      0 1px 0 oklch(1 0 0 / 0.3) inset,
+   677→      0 -1px 0 oklch(0 0 0 / 0.08) inset,
+   678→      0 2px 6px -2px oklch(0.30 0.05 340 / 0.20),
+   679→      0 6px 16px -4px oklch(0.30 0.05 340 / 0.15);
+   680→    transition:
+   681→      transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+   682→      box-shadow 0.18s ease;
+   683→  }
+   684→  .btn-tactile-warm:hover {
+   685→    transform: translateY(-1px);
+   686→    box-shadow:
+   687→      0 1px 0 oklch(1 0 0 / 0.3) inset,
+   688→      0 -1px 0 oklch(0 0 0 / 0.08) inset,
+   689→      0 4px 10px -2px oklch(0.30 0.05 340 / 0.25),
+   690→      0 10px 24px -6px oklch(0.30 0.05 340 / 0.22);
+   691→  }
+   692→  .btn-tactile-warm:active {
+   693→    transform: translateY(0.5px) scale(0.985);
+   694→    box-shadow:
+   695→      0 1px 0 oklch(1 0 0 / 0.2) inset,
+   696→      0 -1px 0 oklch(0 0 0 / 0.12) inset,
+   697→      0 2px 4px -1px oklch(0.30 0.05 340 / 0.20);
+   698→  }
+   699→
+   700→  /* ========== HANDWRITTEN NOTE — for sticky-note text ========== */
+   701→  .handwritten-note {
+   702→    font-family: var(--font-caveat), "Comic Sans MS", cursive;
+   703→    font-weight: 500;
+   704→    line-height: 1.4;
+   705→  }
+   706→
+   707→  /* ========== SKETCH CORNER DECORATION — small doodle in corner ========== */
+   708→  .sketch-corner-tl::before,
+   709→  .sketch-corner-tr::before,
+   710→  .sketch-corner-bl::before,
+   711→  .sketch-corner-br::before {
+   712→    content: "";
+   713→    position: absolute;
+   714→    width: 24px;
+   715→    height: 24px;
+   716→    pointer-events: none;
+   717→    opacity: 0.5;
+   718→  }
+   719→  .sketch-corner-tl::before {
+   720→    top: 6px; left: 6px;
+   721→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M3 3 L 10 3 M3 3 L 3 10' stroke='oklch(0.55 0.18 340)' stroke-width='1.8' fill='none' stroke-linecap='round'/><circle cx='3' cy='3' r='1.5' fill='oklch(0.55 0.18 340)'/></svg>");
+   722→  }
+   723→  .sketch-corner-tr::before {
+   724→    top: 6px; right: 6px;
+   725→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M14 3 L 21 3 M21 3 L 21 10' stroke='oklch(0.55 0.18 340)' stroke-width='1.8' fill='none' stroke-linecap='round'/><circle cx='21' cy='3' r='1.5' fill='oklch(0.55 0.18 340)'/></svg>");
+   726→  }
+   727→  .sketch-corner-bl::before {
+   728→    bottom: 6px; left: 6px;
+   729→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M3 14 L 3 21 M3 21 L 10 21' stroke='oklch(0.55 0.18 340)' stroke-width='1.8' fill='none' stroke-linecap='round'/><circle cx='3' cy='21' r='1.5' fill='oklch(0.55 0.18 340)'/></svg>");
+   730→  }
+   731→  .sketch-corner-br::before {
+   732→    bottom: 6px; right: 6px;
+   733→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M14 21 L 21 21 M21 14 L 21 21' stroke='oklch(0.55 0.18 340)' stroke-width='1.8' fill='none' stroke-linecap='round'/><circle cx='21' cy='21' r='1.5' fill='oklch(0.55 0.18 340)'/></svg>");
+   734→  }
+   735→
+   736→  /* ====================================================================== */
+   737→  /* v3 — PAPER CARD (default surface, replaces glass as default)            */
+   738→  /* ====================================================================== */
+   739→  /* Hand-drawn border via offset double-stroke + slightly irregular radius  */
+   740→  /* v3.1 — warmer cream paper, brown ink border (not plum), more imperfect  */
+   741→  .paper-card {
+   742→    background: oklch(0.99 0.01 78);
+   743→    border: 1.5px solid oklch(0.30 0.04 50 / 0.55);
+   744→    border-radius: 17px 15px 18px 14px;
+   745→    box-shadow:
+   746→      3px 3px 0 0 oklch(0.30 0.04 50 / 0.08),
+   747→      0 1px 2px -1px oklch(0.30 0.04 50 / 0.05),
+   748→      0 4px 12px -4px oklch(0.30 0.04 50 / 0.06);
+   749→    position: relative;
+   750→  }
+   751→  .paper-card::before {
+   752→    content: "";
+   753→    position: absolute;
+   754→    inset: 0;
+   755→    border-radius: inherit;
+   756→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 1 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+   757→    opacity: 0.04;
+   758→    pointer-events: none;
+   759→    mix-blend-mode: multiply;
+   760→  }
+   761→  /* Slightly imperfect inner edge — like a hand-drawn line just inside the border */
+   762→  .paper-card::after {
+   763→    content: "";
+   764→    position: absolute;
+   765→    inset: 4px;
+   766→    border-radius: 13px 11px 14px 10px;
+   767→    border: 0.5px solid oklch(0.30 0.04 50 / 0.10);
+   768→    pointer-events: none;
+   769→  }
+   770→  .dark .paper-card {
+   771→    background: oklch(0.25 0.014 50);
+   772→    border-color: oklch(0.95 0.008 78 / 0.25);
+   773→    box-shadow:
+   774→      3px 3px 0 0 oklch(0 0 0 / 0.22),
+   775→      0 1px 2px -1px oklch(0 0 0 / 0.18),
+   776→      0 4px 12px -4px oklch(0 0 0 / 0.28);
+   777→  }
+   778→  .dark .paper-card::before {
+   779→    opacity: 0.05;
+   780→    mix-blend-mode: screen;
+   781→  }
+   782→  .dark .paper-card::after {
+   783→    border-color: oklch(0.95 0.008 78 / 0.06);
+   784→  }
+   785→
+   786→  /* Paper card hover — lifts like a page being turned */
+   787→  .paper-card-hover {
+   788→    transition:
+   789→      transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1),
+   790→      box-shadow 0.28s ease;
+   791→  }
+   792→  .paper-card-hover:hover {
+   793→    transform: translateY(-2px) rotate(-0.3deg);
+   794→    box-shadow:
+   795→      5px 6px 0 0 oklch(0.30 0.04 50 / 0.10),
+   796→      0 2px 4px -1px oklch(0.30 0.04 50 / 0.08),
+   797→      0 8px 20px -6px oklch(0.30 0.04 50 / 0.10);
+   798→  }
+   799→
+   800→  /* ====================================================================== */
+   801→  /* v3.1 — NOTEBOOK COVER (editorial hero, replaces gradient cover)         */
+   802→  /* ====================================================================== */
+   803→  /* Cream paper with embossed feel, spiral-binding accent on left edge      */
+   804→  .notebook-cover {
+   805→    background:
+   806→      linear-gradient(180deg, oklch(0.99 0.012 78) 0%, oklch(0.97 0.018 75) 100%);
+   807→    border: 2px solid oklch(0.30 0.04 50 / 0.45);
+   808→    border-radius: 18px 20px 18px 20px;
+   809→    box-shadow:
+   810→      4px 5px 0 0 oklch(0.30 0.04 50 / 0.10),
+   811→      0 2px 4px -1px oklch(0.30 0.04 50 / 0.06),
+   812→      0 12px 32px -8px oklch(0.30 0.04 50 / 0.12);
+   813→    position: relative;
+   814→    overflow: hidden;
+   815→  }
+   816→  /* Paper grain */
+   817→  .notebook-cover::before {
+   818→    content: "";
+   819→    position: absolute;
+   820→    inset: 0;
+   821→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 1 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+   822→    opacity: 0.06;
+   823→    pointer-events: none;
+   824→    mix-blend-mode: multiply;
+   825→  }
+   826→  /* Spiral binding — small circles down the left edge */
+   827→  .notebook-cover::after {
+   828→    content: "";
+   829→    position: absolute;
+   830→    top: 16px;
+   831→    bottom: 16px;
+   832→    left: 8px;
+   833→    width: 14px;
+   834→    background-image: radial-gradient(circle at center, oklch(0.30 0.04 50 / 0.30) 2px, transparent 2.5px);
+   835→    background-size: 14px 28px;
+   836→    background-position: center top;
+   837→    background-repeat: repeat-y;
+   838→    pointer-events: none;
+   839→  }
+   840→  .dark .notebook-cover {
+   841→    background:
+   842→      linear-gradient(180deg, oklch(0.27 0.016 50) 0%, oklch(0.24 0.014 50) 100%);
+   843→    border-color: oklch(0.95 0.008 78 / 0.20);
+   844→    box-shadow:
+   845→      4px 5px 0 0 oklch(0 0 0 / 0.30),
+   846→      0 2px 4px -1px oklch(0 0 0 / 0.20),
+   847→      0 12px 32px -8px oklch(0 0 0 / 0.40);
+   848→  }
+   849→  .dark .notebook-cover::before {
+   850→    opacity: 0.08;
+   851→    mix-blend-mode: screen;
+   852→  }
+   853→  .dark .notebook-cover::after {
+   854→    background-image: radial-gradient(circle at center, oklch(0.95 0.008 78 / 0.20) 2px, transparent 2.5px);
+   855→  }
+   856→
+   857→  /* Embossed title for light paper background — uses dark ink shadow */
+   858→  .embossed-title-ink {
+   859→    text-shadow:
+   860→      0 1px 0 oklch(1 0 0 / 0.6),
+   861→      0 -1px 0 oklch(0.30 0.04 50 / 0.18),
+   862→      0 2px 3px oklch(0.30 0.04 50 / 0.10);
+   863→    letter-spacing: -0.02em;
+   864→    color: oklch(0.25 0.018 50);
+   865→  }
+   866→  .dark .embossed-title-ink {
+   867→    color: oklch(0.95 0.008 78);
+   868→    text-shadow:
+   869→      0 1px 0 oklch(1 0 0 / 0.10),
+   870→      0 -1px 0 oklch(0 0 0 / 0.40),
+   871→      0 2px 3px oklch(0 0 0 / 0.30);
+   872→  }
+   873→
+   874→  /* ====================================================================== */
+   875→  /* v3.1 — NOTEBOOK TAB CARD (for Quick Action cards)                       */
+   876→  /* ====================================================================== */
+   877→  /* Like a notebook divider card — colored top tab, ruled line under title  */
+   878→  .notebook-tab {
+   879→    background: oklch(0.99 0.01 78);
+   880→    border: 1.5px solid oklch(0.30 0.04 50 / 0.50);
+   881→    border-radius: 14px 13px 15px 12px;
+   882→    box-shadow:
+   883→      2px 2px 0 0 oklch(0.30 0.04 50 / 0.07),
+   884→      0 1px 2px -1px oklch(0.30 0.04 50 / 0.04),
+   885→      0 4px 10px -4px oklch(0.30 0.04 50 / 0.05);
+   886→    position: relative;
+   887→    overflow: hidden;
+   888→  }
+   889→  /* Colored top tab strip — like a notebook divider */
+   890→  .notebook-tab::before {
+   891→    content: "";
+   892→    position: absolute;
+   893→    top: 0;
+   894→    left: 12px;
+   895→    right: 12px;
+   896→    height: 5px;
+   897→    background: var(--tab-color, oklch(0.50 0.12 340));
+   898→    border-radius: 0 0 3px 3px;
+   899→    opacity: 0.85;
+   900→  }
+   901→  /* Paper grain */
+   902→  .notebook-tab::after {
+   903→    content: "";
+   904→    position: absolute;
+   905→    inset: 0;
+   906→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 1 0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+   907→    opacity: 0.035;
+   908→    pointer-events: none;
+   909→    mix-blend-mode: multiply;
+   910→  }
+   911→  .dark .notebook-tab {
+   912→    background: oklch(0.26 0.014 50);
+   913→    border-color: oklch(0.95 0.008 78 / 0.22);
+   914→    box-shadow:
+   915→      2px 2px 0 0 oklch(0 0 0 / 0.20),
+   916→      0 1px 2px -1px oklch(0 0 0 / 0.16),
+   917→      0 4px 10px -4px oklch(0 0 0 / 0.24);
+   918→  }
+   919→  .dark .notebook-tab::after {
+   920→    opacity: 0.05;
+   921→    mix-blend-mode: screen;
+   922→  }
+   923→  .notebook-tab-hover {
+   924→    transition:
+   925→      transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1),
+   926→      box-shadow 0.28s ease;
+   927→  }
+   928→  .notebook-tab-hover:hover {
+   929→    transform: translateY(-3px) rotate(-0.5deg);
+   930→    box-shadow:
+   931→      4px 5px 0 0 oklch(0.30 0.04 50 / 0.10),
+   932→      0 2px 4px -1px oklch(0.30 0.04 50 / 0.06),
+   933→      0 8px 18px -6px oklch(0.30 0.04 50 / 0.08);
+   934→  }
+   935→
+   936→  /* ====================================================================== */
+   937→  /* v3 — INDEX CARD (for stat cards, pinned-to-corkboard feel)              */
+   938→  /* ====================================================================== */
+   939→  .index-card {
+   940→    background: oklch(0.99 0.01 78);
+   941→    border: 1.5px solid oklch(0.30 0.04 50 / 0.50);
+   942→    border-radius: 11px 13px 10px 12px;
+   943→    box-shadow:
+   944→      2px 2px 0 0 oklch(0.30 0.04 50 / 0.07),
+   945→      0 1px 2px -1px oklch(0.30 0.04 50 / 0.04);
+   946→    position: relative;
+   947→    overflow: hidden;
+   948→  }
+   949→  .index-card::before {
+   950→    /* Top rule — warm amber instead of red (reduces pink) */
+   951→    content: "";
+   952→    position: absolute;
+   953→    top: 0;
+   954→    left: 0;
+   955→    right: 0;
+   956→    height: 6px;
+   957→    background:
+   958→      linear-gradient(90deg,
+   959→        oklch(0.62 0.11 70 / 0.75) 0%,
+   960→        oklch(0.62 0.11 70 / 0.55) 60%,
+   961→        oklch(0.62 0.11 70 / 0.35) 100%);
+   962→  }
+   963→  .index-card::after {
+   964→    /* Paper grain */
+   965→    content: "";
+   966→    position: absolute;
+   967→    inset: 0;
+   968→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 1 0'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>");
+   969→    opacity: 0.04;
+   970→    pointer-events: none;
+   971→    mix-blend-mode: multiply;
+   972→  }
+   973→  .dark .index-card {
+   974→    background: oklch(0.26 0.014 50);
+   975→    border-color: oklch(0.95 0.008 78 / 0.22);
+   976→  }
+   977→  .dark .index-card::after { opacity: 0.05; mix-blend-mode: screen; }
+   978→
+   979→  /* ====================================================================== */
+   980→  /* v3 — KRAFT CARD (brown paper, for warm/editorial blocks)                */
+   981→  /* ====================================================================== */
+   982→  .kraft-card {
+   983→    background: oklch(0.88 0.045 65);
+   984→    border: 1.5px solid oklch(0.40 0.06 50 / 0.50);
+   985→    border-radius: 15px 13px 16px 14px;
+   986→    box-shadow:
+   987→      3px 3px 0 0 oklch(0.40 0.06 50 / 0.12),
+   988→      0 4px 12px -4px oklch(0.30 0.04 50 / 0.10);
+   989→    position: relative;
+   990→  }
+   991→  .kraft-card::before {
+   992→    content: "";
+   993→    position: absolute;
+   994→    inset: 0;
+   995→    border-radius: inherit;
+   996→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 1 0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+   997→    opacity: 0.12;
+   998→    pointer-events: none;
+   999→    mix-blend-mode: multiply;
+  1000→  }
+  1001→  .dark .kraft-card {
+  1002→    background: oklch(0.31 0.025 60);
+  1003→    border-color: oklch(0.70 0.04 60 / 0.40);
+  1004→  }
+  1005→
+  1006→  /* ====================================================================== */
+  1007→  /* v3 — LINED PAGE (notebook ruled paper as card identity)                 */
+  1008→  /* ====================================================================== */
+  1009→  .lined-page {
+  1010→    background: oklch(0.99 0.008 78);
+  1011→    border: 1.5px solid oklch(0.30 0.04 50 / 0.50);
+  1012→    border-radius: 13px 11px 14px 12px;
+  1013→    box-shadow:
+  1014→      2px 2px 0 0 oklch(0.30 0.04 50 / 0.07),
+  1015→      0 4px 12px -4px oklch(0.30 0.04 50 / 0.06);
+  1016→    background-image:
+  1017→      linear-gradient(to bottom, transparent 27px, oklch(0.50 0.12 340 / 0.08) 27px, oklch(0.50 0.12 340 / 0.08) 28px, transparent 28px);
+  1018→    background-size: 100% 28px;
+  1019→    background-position: 0 8px;
+  1020→    position: relative;
+  1021→  }
+  1022→  .lined-page::before {
+  1023→    /* Left margin line — amber instead of red (reduces pink) */
+  1024→    content: "";
+  1025→    position: absolute;
+  1026→    top: 0;
+  1027→    bottom: 0;
+  1028→    left: 32px;
+  1029→    width: 1.5px;
+  1030→    background: oklch(0.62 0.11 70 / 0.35);
+  1031→    pointer-events: none;
+  1032→  }
+  1033→  .dark .lined-page {
+  1034→    background: oklch(0.25 0.014 50);
+  1035→    border-color: oklch(0.95 0.008 78 / 0.22);
+  1036→    background-image:
+  1037→      linear-gradient(to bottom, transparent 27px, oklch(0.95 0.008 78 / 0.07) 27px, oklch(0.95 0.008 78 / 0.07) 28px, transparent 28px);
+  1038→  }
+  1039→  .dark .lined-page::before { background: oklch(0.62 0.11 70 / 0.50); }
+  1040→
+  1041→  /* ====================================================================== */
+  1042→  /* v3 — MAGAZINE CARD (editorial, with drop-cap support)                   */
+  1043→  /* ====================================================================== */
+  1044→  .magazine-card {
+  1045→    background: oklch(0.99 0.01 78);
+  1046→    border: 1px solid oklch(0.30 0.04 50 / 0.18);
+  1047→    border-radius: 5px 4px 5px 4px;
+  1048→    box-shadow:
+  1049→      0 1px 2px -1px oklch(0.30 0.04 50 / 0.04),
+  1050→      0 8px 24px -8px oklch(0.30 0.04 50 / 0.08);
+  1051→    position: relative;
+  1052→  }
+  1053→  .magazine-card::before {
+  1054→    content: "";
+  1055→    position: absolute;
+  1056→    inset: 0;
+  1057→    border-radius: inherit;
+  1058→    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 1 0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+  1059→    opacity: 0.03;
+  1060→    pointer-events: none;
+  1061→    mix-blend-mode: multiply;
+  1062→  }
+  1063→  .dark .magazine-card {
+  1064→    background: oklch(0.25 0.014 50);
+  1065→    border-color: oklch(0.95 0.008 78 / 0.10);
+  1066→  }
+  1067→
+  1068→  /* ====================================================================== */
+  1069→  /* v3 — EDITORIAL TYPOGRAPHY UTILITIES                                    */
+  1070→  /* ====================================================================== */
+  1071→  .font-serif-display {
+  1072→    font-family: var(--font-lora), Georgia, "Times New Roman", serif;
+  1073→    font-weight: 600;
+  1074→    letter-spacing: -0.015em;
+  1075→  }
+  1076→  .font-handwritten {
+  1077→    font-family: var(--font-caveat), "Comic Sans MS", cursive;
+  1078→    font-weight: 600;
+  1079→  }
+  1080→
+  1081→  /* Drop cap — first letter of paragraph, magazine-style */
+  1082→  .drop-cap::first-letter {
+  1083→    font-family: var(--font-lora), Georgia, serif;
+  1084→    font-weight: 700;
+  1085→    font-size: 3.4em;
+  1086→    line-height: 0.85;
+  1087→    float: left;
+  1088→    margin: 0.08em 0.12em 0 0;
+  1089→    color: oklch(0.50 0.12 340);
+  1090→  }
+  1091→  .dark .drop-cap::first-letter {
+  1092→    color: oklch(0.72 0.11 340);
+  1093→  }
+  1094→
+  1095→  /* Stamped number — feels like rubber-stamped ink, warm brown */
+  1096→  .stamped-number {
+  1097→    font-family: var(--font-lora), Georgia, serif;
+  1098→    font-weight: 700;
+  1099→    letter-spacing: -0.03em;
+  1100→    color: oklch(0.30 0.04 50);
+  1101→    text-shadow:
+  1102→      0.5px 0.5px 0 oklch(0.30 0.04 50 / 0.7),
+  1103→      -0.3px -0.3px 0 oklch(0.50 0.12 340 / 0.3);
+  1104→    font-variant-numeric: tabular-nums;
+  1105→  }
+  1106→  .dark .stamped-number {
+  1107→    color: oklch(0.92 0.012 75);
+  1108→    text-shadow:
+  1109→      0.5px 0.5px 0 oklch(0.95 0.008 78 / 0.4),
+  1110→      -0.3px -0.3px 0 oklch(0.72 0.11 340 / 0.25);
+  1111→  }
+  1112→
+  1113→  /* ====================================================================== */
+  1114→  /* v3 — EDITORIAL DIVIDER (magazine-style rule with ornament)              */
+  1115→  /* ====================================================================== */
+  1116→  .editorial-rule {
+  1117→    display: flex;
+  1118→    align-items: center;
+  1119→    gap: 12px;
+  1120→    margin: 8px 0;
+  1121→  }
+  1122→  .editorial-rule::before,
+  1123→  .editorial-rule::after {
+  1124→    content: "";
+  1125→    flex: 1;
+  1126→    height: 1px;
+  1127→    background: linear-gradient(90deg, transparent, oklch(0.30 0.08 340 / 0.20), transparent);
+  1128→  }
+  1129→  .dark .editorial-rule::before,
+  1130→  .dark .editorial-rule::after {
+  1131→    background: linear-gradient(90deg, transparent, oklch(0.95 0.005 75 / 0.15), transparent);
+  1132→  }
+  1133→
+  1134→  /* ====================================================================== */
+  1135→  /* v3 — TAPE CORNER (washi tape fixing a card to the page)                */
+  1136→  /* ====================================================================== */
+  1137→  .tape-corner-tl,
+  1138→  .tape-corner-tr {
+  1139→    position: absolute;
+  1140→    width: 70px;
+  1141→    height: 20px;
+  1142→    background:
+  1143→      linear-gradient(135deg,
+  1144→        oklch(0.88 0.08 70 / 0.65) 0%,
+  1145→        oklch(0.85 0.06 75 / 0.55) 50%,
+  1146→        oklch(0.88 0.08 70 / 0.65) 100%);
+  1147→    box-shadow: 0 2px 4px -2px oklch(0.30 0.05 340 / 0.20);
+  1148→    pointer-events: none;
+  1149→  }
+  1150→  .tape-corner-tl {
+  1151→    top: -8px;
+  1152→    left: 16px;
+  1153→    transform: rotate(-4deg);
+  1154→  }
+  1155→  .tape-corner-tr {
+  1156→    top: -8px;
+  1157→    right: 16px;
+  1158→    transform: rotate(3deg);
+  1159→  }
+  1160→
+  1161→  /* ====================================================================== */
+  1162→  /* v3 — EMBOSSED TITLE (for hero — feels pressed into notebook cover)      */
+  1163→  /* ====================================================================== */
+  1164→  .embossed-title {
+  1165→    text-shadow:
+  1166→      0 1px 0 oklch(1 0 0 / 0.25),
+  1167→      0 -1px 0 oklch(0 0 0 / 0.15),
+  1168→      0 2px 4px oklch(0 0 0 / 0.20);
+  1169→    letter-spacing: -0.02em;
+  1170→  }
+  1171→
+  1172→  /* ====================================================================== */
+  1173→  /* v3 — PIN (pushpin on corkboard, for stat cards)                         */
+  1174→  /* ====================================================================== */
+  1175→  .pushpin {
+  1176→    position: absolute;
+  1177→    top: -6px;
+  1178→    left: 50%;
+  1179→    transform: translateX(-50%);
+  1180→    width: 14px;
+  1181→    height: 14px;
+  1182→    border-radius: 50%;
+  1183→    background: radial-gradient(circle at 35% 35%, oklch(0.70 0.18 25), oklch(0.50 0.20 25));
+  1184→    box-shadow:
+  1185→      0 2px 4px -1px oklch(0 0 0 / 0.30),
+  1186→      inset -1px -1px 2px oklch(0 0 0 / 0.20),
+  1187→      inset 1px 1px 2px oklch(1 0 0 / 0.40);
+  1188→    z-index: 2;
+  1189→  }
+  1190→}
+  1191→
